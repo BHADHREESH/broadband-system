@@ -38,8 +38,8 @@ router.post("/register",
 router.post("/login", 
     loginLimiter, 
     [
-        body('email').optional().isEmail().normalizeEmail(),
-        body('username').optional().isEmail().normalizeEmail(),
+        body('email').optional().trim(),
+        body('username').optional().trim(),
         body('password').isLength({ min: 1 })
     ],
     validateAuth,
