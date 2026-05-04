@@ -19,18 +19,19 @@ function httpError(message, statusCode) {
 
 exports.createOrder = async (req, res) => {
     const { amount } = req.body;
+    const numericAmount = Number(amount);
 
     if (!keyId || !keySecret || !razorpay) {
-        throw httpError("Razorpay keys are not configured", 500);
+        throw httpError("Razorpay keys are not configured", 503);
     }
 
-    if (!amount || Number(amount) <= 0) {
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
         throw httpError("Valid amount is required", 400);
     }
 
     try {
         const order = await razorpay.orders.create({
-            amount: Math.round(Number(amount) * 100),
+            amount: Math.round(numericAmount * 100),
             currency: "INR",
             receipt: `receipt_${Date.now()}`
         });
@@ -41,7 +42,7 @@ exports.createOrder = async (req, res) => {
         });
     } catch (err) {
         const razorpayMessage = err.error && err.error.description;
-        throw httpError(razorpayMessage || "Order creation failed", 500);
+        throw httpError(razorpayMessage || "Order creation failed", 502);
     }
 };
 

@@ -694,7 +694,7 @@ function handleExpiredSession(res) {
 
 async function readApiJson(res) {
     const payload = await res.json().catch(() => ({}));
-    return payload.data || payload;
+    return res.ok ? (payload.data || payload) : payload;
 }
 
 function showSection(id, button) {
