@@ -994,6 +994,20 @@ async function payNow(amount, billId = currentBillId) {
             name: "NetWave",
             description: "Bill Payment",
             order_id: order.id,
+            prefill: {
+                name: currentProfile && currentProfile.name ? currentProfile.name : "",
+                email: currentProfile && currentProfile.email ? currentProfile.email : "",
+                contact: currentProfile && currentProfile.phone ? currentProfile.phone : ""
+            },
+            config: {
+                display: {
+                    hide: [
+                        {
+                            method: "upi"
+                        }
+                    ]
+                }
+            },
 
             handler: async function (response) {
 
@@ -1019,7 +1033,12 @@ async function payNow(amount, billId = currentBillId) {
             }
         };
 
-        new Razorpay(options).open();
+        const checkout = new Razorpay(options);
+        checkout.on("payment.failed", function (response) {
+            const error = response.error || {};
+            notify(error.description || error.reason || "Payment failed");
+        });
+        checkout.open();
 
     } catch (err) {
         console.error(err);
