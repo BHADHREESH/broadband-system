@@ -340,7 +340,7 @@ async function login(event) {
         });
 
         const payload = await res.json().catch(() => ({}));
-        const data = payload.data || payload;
+        const data = res.ok ? (payload.data || payload) : payload;
 
         if (res.ok) {
             const user = data.user || {};
@@ -367,7 +367,7 @@ async function login(event) {
             }
 
         } else {
-            showMessage(data.message || "Login failed");
+            showMessage(payload.message || data.message || "Login failed");
         }
 
     } catch (err) {
