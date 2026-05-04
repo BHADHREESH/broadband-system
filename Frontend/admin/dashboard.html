@@ -384,11 +384,19 @@ tr:hover {
 @media (max-width: 850px) {
     .navbar {
         display: block;
+        padding: 14px 18px;
+    }
+
+    .navbar h2 {
+        min-width: 0;
+        font-size: 22px;
     }
 
     .menu {
         justify-content: flex-start;
         margin: 16px 0;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .container {
@@ -422,6 +430,69 @@ tr:hover {
 
     .form-grid {
         grid-template-columns: 1fr;
+    }
+
+    .table-box {
+        margin-left: -6px;
+        margin-right: -6px;
+        padding: 0 0 12px;
+    }
+
+    .table-box::before {
+        content: "Swipe table to view";
+        display: block;
+        padding: 10px 12px 0;
+        color: #60708c;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    table {
+        min-width: 680px;
+    }
+
+    td,
+    th {
+        padding: 12px 10px;
+        font-size: 14px;
+    }
+
+    td .btn {
+        width: 100%;
+        margin: 4px 0;
+    }
+
+    .modal-backdrop {
+        align-items: flex-end;
+        padding: 10px;
+    }
+
+    .modal {
+        max-height: calc(100vh - 20px);
+        overflow-y: auto;
+        border-radius: 12px;
+    }
+
+    .modal-header,
+    .modal-actions,
+    .form-grid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .modal-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .toast-stack {
+        right: 10px;
+        bottom: 10px;
+        left: 10px;
+    }
+
+    .toast {
+        width: 100%;
     }
 }
 
