@@ -864,7 +864,9 @@ async function loadBills() {
                 ${isPayable
                     ? `<button class="btn" onclick="payNow(${b.amount}, ${b.id})">Pay</button>`
                     : "Paid"}
-                <button class="btn" onclick="downloadBill(${b.id})">Download</button>
+                ${isPayable
+                    ? ""
+                    : `<button class="btn" onclick="downloadBill(${b.id})">Download</button>`}
             </td>
         </tr>`;
     });

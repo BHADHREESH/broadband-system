@@ -143,6 +143,10 @@ const streamBillPdf = async (id, res) => {
     }
 
     const bill = results[0];
+    if (String(bill.status || "").toLowerCase() !== "paid") {
+        throw httpError("Bill can be downloaded only after payment", 403);
+    }
+
     const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader("Content-Type", "application/pdf");
