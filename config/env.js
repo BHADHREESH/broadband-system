@@ -1,4 +1,9 @@
+const fs = require("fs");
+const path = require("path");
+
 require("dotenv").config();
+
+const localFrontendDir = path.join(__dirname, "..", "Frontend");
 
 const env = {
     nodeEnv: process.env.NODE_ENV || "development",
@@ -11,7 +16,8 @@ const env = {
         .split(",")
         .map((origin) => origin.trim())
         .filter(Boolean),
-    frontendDir: "../Frontend"
+    frontendDir: process.env.FRONTEND_DIR
+        || (fs.existsSync(localFrontendDir) ? "Frontend" : "../Frontend")
 };
 
 module.exports = env;

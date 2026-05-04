@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetWave Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+/* ===== GLOBAL ===== */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #eef3fb;
+    color: #172033;
+}
+
+/* ===== NAVBAR ===== */
+.navbar {
+    background: #071b4d;
+    color: white;
+    padding: 16px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.18);
+    gap: 20px;
+}
+
+.navbar h2 {
+    color: white;
+    margin: 0;
+    min-width: 170px;
+}
+
+/* MENU */
+.menu {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.menu a {
+    margin: 0;
+    padding: 8px 10px;
+    cursor: pointer;
+    color: #d9e5ff;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.menu a:hover {
+    color: white;
+    background: rgba(255,255,255,0.12);
+}
+
+/* ===== CONTAINER ===== */
+.container {
+    padding: 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ===== SECTION ===== */
+.section {
+    display: none;
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+    border: 1px solid #e4ebf7;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.08);
+}
+
+.section h2 {
+    margin: 0 0 8px;
+    color: #071b4d;
+}
+
+.section p {
+    color: #60708c;
+    margin-top: 0;
+}
+
+/* ===== BUTTON ===== */
+.btn {
+    background: #0b5ed7;
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn:hover {
+    background: #084db3;
+}
+
+.navbar .btn {
+    background: white;
+    color: #071b4d;
+}
+
+/* ===== TABLE ===== */
+.table-box {
+    background: #fbfdff;
+    padding: 6px 18px 18px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 1px solid #e4ebf7;
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 14px 10px;
+    border-bottom: 1px solid #edf1f8;
+    text-align: left;
+}
+
+th {
+    color: #60708c;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+tr:hover {
+    background: #f1f5ff;
+}
+
+/* BADGE */
+.badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.paid { background: #d1f7e6; color: green; }
+.unpaid { background: #ffe0e0; color: red; }
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin: 18px 0;
+}
+
+.dash-card {
+    background: #fbfdff;
+    border: 1px solid #e4ebf7;
+    border-radius: 12px;
+    padding: 18px;
+}
+
+.dash-card h3 {
+    margin: 0;
+    color: #60708c;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.dash-card strong {
+    display: block;
+    margin-top: 10px;
+    color: #071b4d;
+    font-size: 28px;
+}
+
+.dash-card span {
+    display: block;
+    margin-top: 6px;
+    color: #60708c;
+    font-size: 13px;
+}
+
+.dashboard-columns {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 18px;
+    margin-top: 18px;
+}
+
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.quick-actions .btn {
+    width: 100%;
+}
+
+.status-list,
+.mini-list {
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.status-list li,
+.mini-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 0;
+    border-bottom: 1px solid #edf1f8;
+}
+
+.status-list li:last-child,
+.mini-list li:last-child {
+    border-bottom: 0;
+}
+
+.ok-text { color: #16804f; font-weight: 700; }
+.warn-text { color: #b45309; font-weight: 700; }
+.bad-text { color: #c62828; font-weight: 700; }
+
+.chart-wrap {
+    height: 230px;
+    margin-top: 14px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.section-note {
+    color: #60708c;
+    margin: 6px 0 0;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 27, 77, 0.42);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 20;
+}
+
+.modal-backdrop.show {
+    display: flex;
+}
+
+.modal {
+    width: min(680px, 100%);
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e4ebf7;
+    box-shadow: 0 24px 70px rgba(7, 27, 77, 0.24);
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 22px;
+    border-bottom: 1px solid #edf1f8;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #071b4d;
+}
+
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #d8e2f1;
+    border-radius: 8px;
+    background: #f8fbff;
+    color: #172033;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    padding: 22px;
+}
+
+.form-field {
+    display: grid;
+    gap: 7px;
+}
+
+.form-field.full {
+    grid-column: 1 / -1;
+}
+
+.form-field label {
+    color: #40516d;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    border: 1px solid #d8e2f1;
+    border-radius: 8px;
+    padding: 11px 12px;
+    font: inherit;
+    color: #172033;
+    background: #fbfdff;
+}
+
+.form-field textarea {
+    min-height: 82px;
+    resize: vertical;
+}
+
+.form-message {
+    grid-column: 1 / -1;
+    min-height: 20px;
+    color: #c62828;
+    font-weight: 700;
+}
+
+.toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    display: grid;
+    gap: 10px;
+    z-index: 40;
+}
+
+.toast {
+    width: min(360px, calc(100vw - 36px));
+    background: #071b4d;
+    color: white;
+    border-radius: 10px;
+    padding: 13px 15px;
+    box-shadow: 0 16px 36px rgba(7,27,77,0.24);
+    font-weight: 700;
+}
+
+.toast.error { background: #9f1d1d; }
+.toast.success { background: #16804f; }
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 0 22px 22px;
+}
+
+.btn.secondary {
+    background: #eef3fb;
+    color: #071b4d;
+}
+
+.btn.secondary:hover {
+    background: #dde8f8;
+}
+
+@media (max-width: 850px) {
+    .navbar {
+        display: block;
+    }
+
+    .menu {
+        justify-content: flex-start;
+        margin: 16px 0;
+    }
+
+    .container {
+        padding: 18px;
+    }
+
+    .section {
+        padding: 18px;
+        border-radius: 12px;
+    }
+
+    .navbar .btn,
+    .menu a {
+        width: 100%;
+        text-align: center;
+    }
+
+    .btn {
+        margin: 4px 0;
+    }
+
+    .dashboard-grid,
+    .dashboard-columns,
+    .quick-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .section-header {
+        display: block;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <h2>NetWave Admin</h2>
+
+    <div class="menu">
+        <a onclick="show('dashboard')">Dashboard</a>
+        <a onclick="show('customers')">Customers</a>
+        <a onclick="show('plans')">Plans</a>
+        <a onclick="show('billing')">Billing</a>
+        <a onclick="show('payments')">Payments</a>
+        <a onclick="show('notifications')">Notifications</a>
+        <a onclick="show('support')">Support</a>
+        <a onclick="show('staff')">Staff</a>
+    </div>
+
+    <button class="btn" onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="section">
+    <h2>Dashboard</h2>
+    <p>Live view of customers, billing, support, and service health.</p>
+
+    <div class="dashboard-grid">
+        <div class="dash-card">
+            <h3>Total Customers</h3>
+            <strong id="dashCustomers">0</strong>
+            <span id="dashActive">0 active connections</span>
+        </div>
+        <div class="dash-card">
+            <h3>Monthly Revenue</h3>
+            <strong id="dashRevenue">Rs.0</strong>
+            <span id="dashPaidBills">0 paid bills</span>
+        </div>
+        <div class="dash-card">
+            <h3>Pending Bills</h3>
+            <strong id="dashPendingBills">0</strong>
+            <span id="dashPendingAmount">Rs.0 outstanding</span>
+        </div>
+        <div class="dash-card">
+            <h3>Open Tickets</h3>
+            <strong id="dashTickets">0</strong>
+            <span id="dashResolvedTickets">0 resolved</span>
+        </div>
+    </div>
+
+    <div class="dash-card">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions">
+            <button class="btn" onclick="addCustomer()">Add Customer</button>
+            <button class="btn" onclick="generateBill()">Generate Bill</button>
+            <button class="btn" onclick="addTicket()">Raise Ticket</button>
+        </div>
+    </div>
+
+    <div class="dashboard-columns">
+        <div class="dash-card">
+            <h3>Service Health</h3>
+            <ul class="status-list">
+                <li><span>Broadband Network</span><span class="ok-text">Online</span></li>
+                <li><span>Payment Gateway</span><span class="ok-text">Ready</span></li>
+                <li><span>Support Queue</span><span id="dashQueueHealth" class="ok-text">Clear</span></li>
+                <li><span>Suspended Connections</span><span id="dashSuspended" class="warn-text">0</span></li>
+            </ul>
+        </div>
+
+        <div class="dash-card">
+            <h3>Plan Snapshot</h3>
+            <ul class="mini-list" id="dashPlans">
+                <li><span>No plans loaded</span><span>--</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="dashboard-columns">
+        <div class="dash-card">
+            <h3>Recent Tickets</h3>
+            <ul class="mini-list" id="dashRecentTickets">
+                <li><span>No tickets</span><span>--</span></li>
+            </ul>
+        </div>
+
+        <div class="dash-card">
+            <h3>Recent Bills</h3>
+            <ul class="mini-list" id="dashRecentBills">
+                <li><span>No bills</span><span>--</span></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="dashboard-columns">
+        <div class="dash-card">
+            <h3>Payment Status Chart</h3>
+            <div class="chart-wrap">
+                <canvas id="paymentStatusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="dash-card">
+            <h3>Revenue Chart</h3>
+            <div class="chart-wrap">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CUSTOMERS -->
+<div id="customers" class="section">
+    <div class="section-header">
+        <div>
+            <h2>Customers</h2>
+            <p class="section-note">New customer registrations and admin-created customers appear here.</p>
+        </div>
+        <button class="btn" onclick="addCustomer()">+ Add Customer</button>
+    </div>
+
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Plan</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="customerTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PLANS -->
+<div id="plans" class="section">
+    <h2>Plans</h2>
+    <button class="btn" onclick="addPlan()">+ Add Plan</button>
+
+    <div class="table-box">
+        <table>
+            <tbody id="planTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- BILLING -->
+<div id="billing" class="section">
+    <h2>Billing</h2>
+    <button class="btn" onclick="generateBill()">Generate Bill</button>
+    <button class="btn" onclick="sendReminders()">Send Reminders</button>
+
+    <div class="table-box">
+        <table>
+            <tbody id="billTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PAYMENTS -->
+<div id="payments" class="section">
+    <h2>Payments</h2>
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Receipt</th>
+                    <th>Paid At</th>
+                </tr>
+            </thead>
+            <tbody id="paymentTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div id="notifications" class="section">
+    <h2>Notifications</h2>
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Channel</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody id="notificationTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SUPPORT -->
+<div id="support" class="section">
+    <h2>Support</h2>
+    <button class="btn" onclick="addTicket()">Raise Ticket</button>
+
+    <div class="table-box">
+        <table>
+            <tbody id="ticketTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- STAFF -->
+<div id="staff" class="section">
+    <h2>Staff</h2>
+    <button class="btn" onclick="addStaff()">Add Staff</button>
+
+    <div class="table-box">
+        <table>
+            <tbody id="staffTable"></tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+<div class="modal-backdrop" id="customerModalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle">
+        <div class="modal-header">
+            <h3 id="customerModalTitle">Add Customer</h3>
+            <button class="icon-btn" type="button" onclick="closeCustomerModal()" aria-label="Close customer form">&times;</button>
+        </div>
+        <form id="customerForm">
+            <div class="form-grid">
+                <input type="hidden" id="customerFormMode" value="add">
+                <input type="hidden" id="customerIdInput">
+
+                <div class="form-field">
+                    <label for="customerNameInput">Customer name</label>
+                    <input id="customerNameInput" name="name" autocomplete="name" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="customerEmailInput">Email</label>
+                    <input id="customerEmailInput" name="email" type="email" autocomplete="email" required>
+                </div>
+
+                <div class="form-field">
+                    <label for="customerPhoneInput">Phone</label>
+                    <input id="customerPhoneInput" name="phone" autocomplete="tel">
+                </div>
+
+                <div class="form-field">
+                    <label for="customerPlanInput">Plan</label>
+                    <select id="customerPlanInput" name="plan_id" required></select>
+                </div>
+
+                <div class="form-field" id="customerStatusField">
+                    <label for="customerStatusInput">Status</label>
+                    <select id="customerStatusInput" name="status">
+                        <option value="pending">Pending</option>
+                        <option value="active">Active</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+
+                <div class="form-field" id="customerPasswordField">
+                    <label for="customerPasswordInput">Temporary password</label>
+                    <input id="customerPasswordInput" name="password" type="password" autocomplete="new-password">
+                </div>
+
+                <div class="form-field full">
+                    <label for="customerAddressInput">Address</label>
+                    <textarea id="customerAddressInput" name="address"></textarea>
+                </div>
+
+                <div class="form-message" id="customerFormMessage"></div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn secondary" type="button" onclick="closeCustomerModal()">Cancel</button>
+                <button class="btn" id="customerSubmitButton" type="submit">Save Customer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="appDialogBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle">
+        <div class="modal-header">
+            <h3 id="appDialogTitle">Confirm</h3>
+            <button class="icon-btn" type="button" onclick="closeAppDialog(null)" aria-label="Close dialog">&times;</button>
+        </div>
+        <form id="appDialogForm">
+            <div class="form-grid">
+                <p class="form-field full" id="appDialogMessage"></p>
+                <div class="form-field full" id="appDialogInputWrap">
+                    <label for="appDialogInput" id="appDialogInputLabel">Value</label>
+                    <input id="appDialogInput">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn secondary" type="button" onclick="closeAppDialog(null)">Cancel</button>
+                <button class="btn" id="appDialogOkButton" type="submit">OK</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+const BACKEND_ORIGIN = "http://localhost:5000";
+const API_BASE = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? BACKEND_ORIGIN
+    : "";
+const apiUrl = (path) => `${API_BASE}${path}`;
+let appDialogResolver = null;
+
+function notify(message, type = "error") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastStack.appendChild(toast);
+    setTimeout(() => toast.remove(), 3600);
+}
+
+function openAppDialog({ title, message, input = false, defaultValue = "", label = "Value", okText = "OK" }) {
+    appDialogTitle.innerText = title;
+    appDialogMessage.innerText = message || "";
+    appDialogInputWrap.style.display = input ? "grid" : "none";
+    appDialogInputLabel.innerText = label;
+    appDialogInput.value = defaultValue || "";
+    appDialogOkButton.innerText = okText;
+    appDialogBackdrop.classList.add("show");
+    if (input) setTimeout(() => appDialogInput.focus(), 0);
+
+    return new Promise(resolve => {
+        appDialogResolver = resolve;
+    });
+}
+
+function closeAppDialog(value) {
+    appDialogBackdrop.classList.remove("show");
+    if (appDialogResolver) appDialogResolver(value);
+    appDialogResolver = null;
+}
+
+function askText(label, defaultValue = "") {
+    return openAppDialog({ title: label, message: "", input: true, label, defaultValue, okText: "Save" });
+}
+
+function askConfirm(message) {
+    return openAppDialog({ title: "Confirm action", message, okText: "Confirm" });
+}
+
+document.getElementById("appDialogForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const hasInput = appDialogInputWrap.style.display !== "none";
+    closeAppDialog(hasInput ? appDialogInput.value : true);
+});
+
+function decodeToken(token) {
+    const payload = token.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64.padEnd(base64.length + (4 - base64.length % 4) % 4, "=")));
+}
+
+    const token = localStorage.getItem("token");
+        if (!token) {
+            window.location.href = "../login.html";
+            throw new Error("Login required");
+        }
+    const payload = decodeToken(token);
+        if (payload.role !== "admin") {
+            notify("Access denied");
+            window.location.href = "../login.html";
+}
+
+let customersData = [];
+let plansData = [];
+let billsData = [];
+let paymentsData = [];
+let ticketsData = [];
+let staffData = [];
+let notificationLogsData = [];
+let paymentStatusChart;
+let revenueChart;
+const customerModal = document.getElementById("customerModalBackdrop");
+const customerForm = document.getElementById("customerForm");
+const customerFormMessage = document.getElementById("customerFormMessage");
+const customerSubmitButton = document.getElementById("customerSubmitButton");
+
+function money(value) {
+    return "Rs." + Number(value || 0).toLocaleString("en-IN");
+}
+
+function statusBadge(status) {
+    const value = status || "active";
+    const className = value === "active" ? "paid" : "unpaid";
+    return `<span class="badge ${className}">${value}</span>`;
+}
+
+function customerActions(customer) {
+    if ((customer.status || "active") === "pending") {
+        return `
+            <button class="btn" onclick="approveCustomer(${customer.id})">Approve</button>
+            <button class="btn" onclick="rejectCustomer(${customer.id})">Reject</button>`;
+    }
+
+    return `
+        <button class="btn" onclick="editCustomer(${customer.id})">Edit</button>
+        <button class="btn" onclick="deleteCustomer(${customer.id})">Remove</button>`;
+}
+
+function planLabel(planId) {
+    const plan = plansData.find(p => Number(p.id) === Number(planId));
+    if (!plan) return planId ? `Plan #${planId}` : "--";
+    return `${plan.name || "Plan"} (${plan.speed || "Speed"})`;
+}
+
+function fillCustomerPlanOptions(selectedPlanId) {
+    const planSelect = document.getElementById("customerPlanInput");
+    planSelect.innerHTML = `<option value="">Choose plan</option>`;
+
+    plansData.forEach(plan => {
+        const option = document.createElement("option");
+        option.value = plan.id;
+        option.textContent = `${plan.id} - ${plan.name} (${plan.speed}, ${money(plan.price)})`;
+        if (Number(plan.id) === Number(selectedPlanId)) option.selected = true;
+        planSelect.appendChild(option);
+    });
+}
+
+async function apiGet(url) {
+    const res = await fetch(apiUrl(url), { headers: { Authorization: "Bearer " + token } });
+    const payload = await res.json().catch(() => ({}));
+    const data = payload.data || payload;
+
+    if (res.status === 401) {
+        localStorage.clear();
+        notify("Session expired. Please login again.");
+        window.location.href = "../login.html";
+        throw new Error("Session expired");
+    }
+
+    if (!res.ok) {
+        throw new Error(payload.message || data.message || "Unable to load data");
+    }
+
+    return Array.isArray(data) ? data : [];
+}
+
+function showTableMessage(table, message, columns = 2) {
+    table.innerHTML = `<tr><td colspan="${columns}">${message}</td></tr>`;
+}
+
+function renderCharts() {
+    if (!window.Chart || !paymentStatusChart || !revenueChart) return;
+
+    const paid = billsData.filter(b => b.status === "paid").length;
+    const unpaid = billsData.filter(b => b.status !== "paid").length;
+
+    paymentStatusChart.data.datasets[0].data = [paid, unpaid];
+    paymentStatusChart.update();
+
+    const monthlyRevenue = {};
+    billsData
+        .filter(b => b.status === "paid")
+        .forEach(b => {
+            const date = new Date(b.bill_date || Date.now());
+            const key = date.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
+            monthlyRevenue[key] = (monthlyRevenue[key] || 0) + Number(b.amount || 0);
+        });
+
+    const labels = Object.keys(monthlyRevenue);
+    revenueChart.data.labels = labels.length ? labels : ["No data"];
+    revenueChart.data.datasets[0].data = labels.length ? Object.values(monthlyRevenue) : [0];
+    revenueChart.update();
+}
+
+function initCharts() {
+    if (!window.Chart) return;
+
+    paymentStatusChart = new Chart(document.getElementById("paymentStatusChart"), {
+        type: "doughnut",
+        data: {
+            labels: ["Paid", "Pending"],
+            datasets: [{
+                data: [0, 0],
+                backgroundColor: ["#16804f", "#c62828"]
+            }]
+        },
+        options: { maintainAspectRatio: false }
+    });
+
+    revenueChart = new Chart(document.getElementById("revenueChart"), {
+        type: "bar",
+        data: {
+            labels: ["No data"],
+            datasets: [{
+                label: "Revenue",
+                data: [0],
+                backgroundColor: "#0b5ed7"
+            }]
+        },
+        options: { maintainAspectRatio: false }
+    });
+}
+
+function renderDashboard() {
+    const activeCustomers = customersData.filter(c => (c.status || "active") === "active").length;
+    const suspendedCustomers = customersData.filter(c => (c.status || "") === "suspended").length;
+    const paidBills = billsData.filter(b => b.status === "paid");
+    const pendingBills = billsData.filter(b => b.status !== "paid");
+    const paidRevenue = paidBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+    const pendingAmount = pendingBills.reduce((sum, b) => sum + Number(b.amount || 0), 0);
+    const openTickets = ticketsData.filter(t => t.status !== "resolved");
+    const resolvedTickets = ticketsData.filter(t => t.status === "resolved");
+
+    dashCustomers.innerText = customersData.length;
+    dashActive.innerText = activeCustomers + " active connections";
+    dashRevenue.innerText = money(paidRevenue);
+    dashPaidBills.innerText = paidBills.length + " paid bills";
+    dashPendingBills.innerText = pendingBills.length;
+    dashPendingAmount.innerText = money(pendingAmount) + " outstanding";
+    dashTickets.innerText = openTickets.length;
+    dashResolvedTickets.innerText = resolvedTickets.length + " resolved";
+    dashSuspended.innerText = suspendedCustomers;
+
+    dashQueueHealth.innerText = openTickets.length > 5 ? "Busy" : "Clear";
+    dashQueueHealth.className = openTickets.length > 5 ? "bad-text" : "ok-text";
+
+    dashPlans.innerHTML = "";
+    plansData.slice(0, 4).forEach(plan => {
+        dashPlans.innerHTML += `
+            <li>
+                <span>${plan.name || "Plan"} - ${plan.speed || "Speed"}</span>
+                <span>${money(plan.price)}</span>
+            </li>`;
+    });
+    if (plansData.length === 0) {
+        dashPlans.innerHTML = `<li><span>No plans loaded</span><span>--</span></li>`;
+    }
+
+    dashRecentTickets.innerHTML = "";
+    ticketsData.slice(0, 4).forEach(ticket => {
+        dashRecentTickets.innerHTML += `
+            <li>
+                <span>${ticket.issue}</span>
+                <span class="${ticket.status === "resolved" ? "ok-text" : "warn-text"}">${ticket.status}</span>
+            </li>`;
+    });
+    if (ticketsData.length === 0) {
+        dashRecentTickets.innerHTML = `<li><span>No tickets</span><span>--</span></li>`;
+    }
+
+    dashRecentBills.innerHTML = "";
+    billsData.slice(0, 4).forEach(bill => {
+        dashRecentBills.innerHTML += `
+            <li>
+                <span>${bill.customer_name || "Customer"}</span>
+                <span>${money(bill.amount)} - ${bill.status}</span>
+            </li>`;
+    });
+    if (billsData.length === 0) {
+        dashRecentBills.innerHTML = `<li><span>No bills</span><span>--</span></li>`;
+    }
+
+    renderCharts();
+}
+
+/* SHOW SECTION */
+function show(id) {
+    document.querySelectorAll(".section").forEach(s => s.style.display="none");
+    document.getElementById(id).style.display="block";
+}
+
+/* LOGOUT */
+function logout() {
+    localStorage.clear();
+    window.location.href = "../login.html";
+}
+
+/* CUSTOMERS */
+async function loadCustomers() {
+    try {
+        customersData = await apiGet("/api/customers");
+
+        customerTable.innerHTML="";
+        customersData.forEach(c=>{
+            customerTable.innerHTML+=`
+            <tr>
+                <td>${c.id}</td>
+                <td>${c.name}</td>
+                <td>${c.email}</td>
+                <td>${c.phone || "--"}</td>
+                <td>${planLabel(c.plan_id)}</td>
+                <td>${statusBadge(c.status)}</td>
+                <td>${customerActions(c)}</td>
+            </tr>`;
+        });
+        if (customersData.length === 0) showTableMessage(customerTable, "No customers found", 7);
+    } catch (err) {
+        customersData = [];
+        showTableMessage(customerTable, err.message, 7);
+    }
+    renderDashboard();
+}
+
+/* PLANS */
+async function loadPlans() {
+    try {
+        plansData = await apiGet("/api/plans");
+
+        planTable.innerHTML="";
+        plansData.forEach(p=>{
+            planTable.innerHTML+=`<tr><td>#${p.id}</td><td>${p.name}</td><td>${p.speed}</td><td>${money(p.price)}</td><td><button class="btn" onclick="editPlan(${p.id})">Edit</button></td></tr>`;
+        });
+        if (plansData.length === 0) showTableMessage(planTable, "No plans found");
+    } catch (err) {
+        plansData = [];
+        showTableMessage(planTable, err.message);
+    }
+    renderDashboard();
+}
+
+/* BILLS */
+async function loadBills() {
+    try {
+        billsData = await apiGet("/api/bills");
+
+        billTable.innerHTML="";
+        billsData.forEach(b=>{
+            billTable.innerHTML+=`
+            <tr>
+                <td>${b.customer_name}</td>
+                <td>${money(b.amount)}</td>
+                <td><span class="badge ${b.status=='paid'?'paid':'unpaid'}">${b.status}</span></td>
+            </tr>`;
+        });
+        if (billsData.length === 0) showTableMessage(billTable, "No bills found", 3);
+    } catch (err) {
+        billsData = [];
+        showTableMessage(billTable, err.message, 3);
+    }
+    renderDashboard();
+}
+
+/* PAYMENTS */
+async function loadPayments() {
+    try {
+        paymentsData = await apiGet("/api/payments");
+
+        paymentTable.innerHTML="";
+        paymentsData.forEach(p=>{
+            paymentTable.innerHTML+=`
+            <tr>
+                <td>${p.customer_name || "--"}</td>
+                <td>${money(p.amount)}</td>
+                <td>${p.method || "--"}</td>
+                <td>${p.receipt_number || "--"}</td>
+                <td>${p.paid_at ? new Date(p.paid_at).toLocaleString("en-IN") : "--"}</td>
+            </tr>`;
+        });
+        if (paymentsData.length === 0) showTableMessage(paymentTable, "No payments found", 5);
+    } catch (err) {
+        paymentsData = [];
+        showTableMessage(paymentTable, err.message, 5);
+    }
+}
+
+async function loadNotifications() {
+    try {
+        notificationLogsData = await apiGet("/api/payments/notifications");
+
+        notificationTable.innerHTML="";
+        notificationLogsData.forEach(n=>{
+            notificationTable.innerHTML+=`
+            <tr>
+                <td>${n.customer_name || "--"}</td>
+                <td>${n.channel}</td>
+                <td>${n.notification_type}</td>
+                <td>${n.status}</td>
+                <td>${n.created_at ? new Date(n.created_at).toLocaleString("en-IN") : "--"}</td>
+            </tr>`;
+        });
+        if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 5);
+    } catch (err) {
+        notificationLogsData = [];
+        showTableMessage(notificationTable, err.message, 5);
+    }
+}
+
+/* SUPPORT */
+async function loadTickets() {
+    try {
+        ticketsData = await apiGet("/api/support");
+
+        ticketTable.innerHTML="";
+        ticketsData.forEach(t=>{
+            ticketTable.innerHTML+=`<tr><td>${t.issue}</td><td>${t.status}</td></tr>`;
+        });
+        if (ticketsData.length === 0) showTableMessage(ticketTable, "No support tickets found");
+    } catch (err) {
+        ticketsData = [];
+        showTableMessage(ticketTable, err.message);
+    }
+    renderDashboard();
+}
+
+/* STAFF */
+async function loadStaff() {
+    try {
+        staffData = await apiGet("/api/staff");
+
+        staffTable.innerHTML="";
+        staffData.forEach(s=>{
+            staffTable.innerHTML+=`
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.email}</td>
+                <td><button class="btn" onclick="deleteStaff(${s.id})">Remove</button></td>
+            </tr>`;
+        });
+        if (staffData.length === 0) showTableMessage(staffTable, "No staff users found", 4);
+    } catch (err) {
+        staffData = [];
+        showTableMessage(staffTable, err.message, 4);
+    }
+    renderDashboard();
+}
+
+async function handleJson(res) {
+    const payload = await res.json().catch(() => ({}));
+    const data = payload.data || payload;
+
+    if (res.status === 401) {
+        localStorage.clear();
+        notify("Session expired. Please login again.");
+        window.location.href = "../login.html";
+        throw new Error("Session expired");
+    }
+
+    if (!res.ok) {
+        throw new Error(payload.message || data.message || "Request failed");
+    }
+
+    return data;
+}
+
+async function addCustomer() {
+    if (plansData.length === 0) await loadPlans();
+    openCustomerModal("add");
+}
+
+async function deleteCustomer(id) {
+    if (!await askConfirm("Remove this customer and login account?")) return;
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/customers/${id}`), {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + token }
+        }));
+        await loadCustomers();
+        await loadBills();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function approveCustomer(id) {
+    try {
+        await handleJson(await fetch(apiUrl(`/api/customers/${id}/approve`), {
+            method: "PUT",
+            headers: { Authorization: "Bearer " + token }
+        }));
+        notify("Customer approved", "success");
+        await loadCustomers();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function rejectCustomer(id) {
+    if (!await askConfirm("Reject this registration request?")) return;
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/customers/${id}/reject`), {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + token }
+        }));
+        notify("Registration rejected", "success");
+        await loadCustomers();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function editCustomer(id) {
+    const customer = customersData.find(c => Number(c.id) === Number(id));
+    if (!customer) return notify("Customer not found");
+    if (plansData.length === 0) await loadPlans();
+    openCustomerModal("edit", customer);
+}
+
+function openCustomerModal(mode, customer = {}) {
+    const isEdit = mode === "edit";
+    document.getElementById("customerModalTitle").innerText = isEdit ? "Edit Customer" : "Add Customer";
+    document.getElementById("customerFormMode").value = mode;
+    document.getElementById("customerIdInput").value = customer.id || "";
+    document.getElementById("customerNameInput").value = customer.name || "";
+    document.getElementById("customerEmailInput").value = customer.email || "";
+    document.getElementById("customerPhoneInput").value = customer.phone || "";
+    document.getElementById("customerAddressInput").value = customer.address || "";
+    document.getElementById("customerStatusInput").value = customer.status || "active";
+    document.getElementById("customerPasswordInput").value = "";
+    document.getElementById("customerPasswordInput").required = !isEdit;
+    document.getElementById("customerPasswordField").style.display = isEdit ? "none" : "grid";
+    document.getElementById("customerStatusField").style.display = isEdit ? "grid" : "none";
+    customerSubmitButton.innerText = isEdit ? "Update Customer" : "Add Customer";
+    customerFormMessage.innerText = "";
+    fillCustomerPlanOptions(customer.plan_id);
+    customerModal.classList.add("show");
+    document.getElementById("customerNameInput").focus();
+}
+
+function closeCustomerModal() {
+    customerModal.classList.remove("show");
+}
+
+customerModal.addEventListener("click", (event) => {
+    if (event.target === customerModal) closeCustomerModal();
+});
+
+customerForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const mode = document.getElementById("customerFormMode").value;
+    const id = document.getElementById("customerIdInput").value;
+    const name = document.getElementById("customerNameInput").value.trim();
+    const email = document.getElementById("customerEmailInput").value.trim();
+    const phone = document.getElementById("customerPhoneInput").value.trim();
+    const address = document.getElementById("customerAddressInput").value.trim();
+    const plan_id = document.getElementById("customerPlanInput").value;
+    const status = document.getElementById("customerStatusInput").value;
+    const password = document.getElementById("customerPasswordInput").value.trim();
+    const isEdit = mode === "edit";
+
+    if (!name || !email || !plan_id || (!isEdit && !password)) {
+        customerFormMessage.innerText = "Name, email, plan and password are required";
+        return;
+    }
+
+    const body = isEdit
+        ? { name, email, phone, address, plan_id, status }
+        : { name, email, phone, address, plan_id, password };
+
+    customerSubmitButton.disabled = true;
+    customerFormMessage.innerText = "";
+
+    try {
+        await handleJson(await fetch(apiUrl(isEdit ? `/api/customers/${id}` : "/api/customers"), {
+            method: isEdit ? "PUT" : "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify(body)
+        }));
+        closeCustomerModal();
+        await loadCustomers();
+        renderDashboard();
+    } catch (err) {
+        customerFormMessage.innerText = err.message;
+    } finally {
+        customerSubmitButton.disabled = false;
+    }
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && customerModal.classList.contains("show")) {
+        closeCustomerModal();
+    }
+});
+
+async function addPlan() {
+    const name = await askText("Plan name");
+    const speed = await askText("Speed");
+    const price = await askText("Price");
+    const validity = await askText("Validity");
+
+    if (!name || !speed || !price || !validity) return notify("All plan fields are required");
+
+    try {
+        await handleJson(await fetch(apiUrl("/api/plans"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ name, speed, price, validity })
+        }));
+        loadPlans();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function editPlan(id) {
+    const plan = plansData.find(p => Number(p.id) === Number(id));
+    if (!plan) return notify("Plan not found");
+
+    const name = await askText("Plan name", plan.name || "");
+    const speed = await askText("Speed", plan.speed || "");
+    const price = await askText("Price", plan.price || "");
+    const validity = await askText("Validity", plan.validity || "");
+
+    if (!name || !speed || !price || !validity) return notify("All plan fields are required");
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/plans/${id}`), {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ name, speed, price, validity })
+        }));
+        loadPlans();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function generateBill() {
+    const customer_id = await askText("Customer ID");
+
+    if (!customer_id) return notify("Customer ID is required");
+
+    try {
+        await handleJson(await fetch(apiUrl("/api/bills/generate"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ customer_id })
+        }));
+        loadBills();
+        loadPayments();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function sendReminders() {
+    if (!await askConfirm("Send due reminders for unpaid bills due within 3 days?")) return;
+
+    try {
+        const data = await handleJson(await fetch(apiUrl("/api/bills/reminders/send"), {
+            method: "POST",
+            headers: { Authorization: "Bearer " + token }
+        }));
+        notify(`${data.count || 0} reminders processed`, "success");
+        loadNotifications();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function addTicket() {
+    const issue = await askText("Issue");
+
+    if (!issue) return notify("Issue is required");
+
+    try {
+        await handleJson(await fetch(apiUrl("/api/support"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ issue })
+        }));
+        loadTickets();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function addStaff() {
+    const name = await askText("Staff name");
+    const email = await askText("Staff email");
+    const password = await askText("Temporary password");
+
+    if (!name || !email || !password) return notify("Name, email and password are required");
+
+    try {
+        await handleJson(await fetch(apiUrl("/api/staff"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ name, email, password })
+        }));
+        loadStaff();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function deleteStaff(id) {
+    if (!await askConfirm("Remove this staff account?")) return;
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/staff/${id}`), {
+            method: "DELETE",
+            headers: { Authorization: "Bearer " + token }
+        }));
+        loadStaff();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+/* LOAD ALL */
+async function initAdminDashboard() {
+    show("dashboard");
+    initCharts();
+    await loadPlans();
+    await loadCustomers();
+    loadBills();
+    loadPayments();
+    loadNotifications();
+    loadTickets();
+    loadStaff();
+}
+
+initAdminDashboard();
+
+</script>
+
+</body>
+</html>

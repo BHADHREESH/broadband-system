@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetWave Staff</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #eef3fb;
+    display: flex;
+    color: #172033;
+}
+
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: #071b4d;
+    color: white;
+    padding: 24px 18px;
+    position: sticky;
+    top: 0;
+}
+
+.sidebar h2 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    letter-spacing: 0;
+}
+
+.sidebar .tagline {
+    color: #b8c8ee;
+    font-size: 13px;
+    margin-bottom: 34px;
+}
+
+.menu a {
+    border: 0;
+    background: transparent;
+    display: block;
+    padding: 13px 14px;
+    margin: 7px 0;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.menu a:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+.menu a.active-link {
+    background: white;
+    color: #071b4d;
+}
+
+.main {
+    flex: 1;
+    min-height: 100vh;
+    padding: 28px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    background: white;
+    border-radius: 12px;
+    padding: 18px 22px;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.08);
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 24px;
+}
+
+#name {
+    background: #e8f0ff;
+    color: #0b5ed7;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: white;
+    padding: 22px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.08);
+    border: 1px solid #e4ebf7;
+}
+
+.card h3 {
+    margin: 0;
+    color: #60708c;
+    font-size: 14px;
+}
+
+.card h1 {
+    margin: 12px 0 0;
+    color: #071b4d;
+}
+
+.table-box {
+    margin-top: 20px;
+    background: white;
+    padding: 6px 18px 18px;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.08);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    min-width: 680px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 14px 10px;
+    text-align: left;
+    border-bottom: 1px solid #edf1f8;
+}
+
+th {
+    color: #60708c;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+tr:hover td {
+    background: #f8fbff;
+}
+
+.btn {
+    background: #0b5ed7;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+.btn:hover {
+    background: #084db3;
+}
+
+.section { display: none; }
+.active { display: block; }
+
+.section h2 {
+    margin: 0 0 16px;
+}
+
+.toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    display: grid;
+    gap: 10px;
+    z-index: 40;
+}
+
+.toast {
+    width: min(360px, calc(100vw - 36px));
+    background: #071b4d;
+    color: white;
+    border-radius: 10px;
+    padding: 13px 15px;
+    box-shadow: 0 16px 36px rgba(7,27,77,0.24);
+    font-weight: 700;
+}
+
+.toast.error { background: #9f1d1d; }
+.toast.success { background: #16804f; }
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7,27,77,0.42);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 30;
+}
+
+.modal-backdrop.show {
+    display: flex;
+}
+
+.modal {
+    width: min(560px, 100%);
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e4ebf7;
+    box-shadow: 0 24px 70px rgba(7,27,77,0.24);
+    overflow: hidden;
+}
+
+.modal-header,
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+}
+
+.modal-header {
+    border-bottom: 1px solid #edf1f8;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #071b4d;
+}
+
+.modal-body {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+}
+
+.modal-body label {
+    color: #40516d;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.modal-body input {
+    width: 100%;
+    border: 1px solid #d8e2f1;
+    border-radius: 8px;
+    padding: 11px 12px;
+    font: inherit;
+}
+
+.btn.secondary {
+    background: #eef3fb;
+    color: #071b4d;
+}
+
+@media (max-width: 900px) {
+    body {
+        display: block;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        padding: 20px 16px;
+    }
+
+    .menu {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .menu a {
+        margin: 0;
+        text-align: center;
+    }
+
+    .main {
+        padding: 18px;
+    }
+
+    .header {
+        display: block;
+    }
+
+    #name {
+        display: inline-block;
+        margin-top: 12px;
+    }
+
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    .btn {
+        margin: 4px 0;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <h2>NetWave</h2>
+    <div class="tagline">Staff operations</div>
+
+    <div class="menu">
+        <a class="active-link" onclick="showSection('dashboard', this)">Dashboard</a>
+        <a onclick="showSection('tickets', this)">Tickets</a>
+        <a onclick="showSection('customers', this)">Customers</a>
+        <a onclick="showSection('payments', this)">Payments</a>
+        <a onclick="showSection('connections', this)">Connections</a>
+        <a onclick="logout()">Logout</a>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<div class="header">
+    <h2>Staff Panel</h2>
+    <span id="name"></span>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="section active">
+
+<div class="cards">
+    <div class="card">
+        <h3>Tickets</h3>
+        <h1 id="ticketCount">0</h1>
+    </div>
+
+    <div class="card">
+        <h3>Pending</h3>
+        <h1 id="pendingCount">0</h1>
+    </div>
+
+    <div class="card">
+        <h3>Customers</h3>
+        <h1 id="customerCount">0</h1>
+    </div>
+</div>
+
+</div>
+
+<!-- TICKETS -->
+<div id="tickets" class="section">
+<h2>Tickets</h2>
+
+<div class="table-box">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Issue</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="ticketTable"></tbody>
+</table>
+</div>
+</div>
+
+<!-- CUSTOMERS -->
+<div id="customers" class="section">
+<h2>Customers</h2>
+<button class="btn" onclick="addCustomer()">Add Customer</button>
+
+<div class="table-box">
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Email</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="customerTable"></tbody>
+</table>
+</div>
+</div>
+
+<!-- PAYMENTS -->
+<div id="payments" class="section">
+<h2>Payments</h2>
+
+<div class="table-box">
+<table>
+<thead>
+<tr>
+<th>Customer</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="paymentTable"></tbody>
+</table>
+</div>
+</div>
+
+<!-- CONNECTIONS -->
+<div id="connections" class="section">
+<h2>Connections</h2>
+
+<div class="table-box">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="connectionTable"></tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+<div class="modal-backdrop" id="appDialogBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle">
+        <div class="modal-header">
+            <h3 id="appDialogTitle">Enter value</h3>
+            <button class="btn secondary" type="button" onclick="closeAppDialog(null)">Close</button>
+        </div>
+        <form id="appDialogForm">
+            <div class="modal-body">
+                <label for="appDialogInput" id="appDialogInputLabel">Value</label>
+                <input id="appDialogInput">
+            </div>
+            <div class="modal-actions">
+                <button class="btn secondary" type="button" onclick="closeAppDialog(null)">Cancel</button>
+                <button class="btn" type="submit">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+
+const BACKEND_ORIGIN = "http://localhost:5000";
+const API_BASE = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? BACKEND_ORIGIN
+    : "";
+const apiUrl = (path) => `${API_BASE}${path}`;
+let appDialogResolver = null;
+
+function notify(message, type = "error") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastStack.appendChild(toast);
+    setTimeout(() => toast.remove(), 3600);
+}
+
+function askText(label, defaultValue = "") {
+    appDialogTitle.innerText = label;
+    appDialogInputLabel.innerText = label;
+    appDialogInput.value = defaultValue || "";
+    appDialogBackdrop.classList.add("show");
+    setTimeout(() => appDialogInput.focus(), 0);
+    return new Promise(resolve => {
+        appDialogResolver = resolve;
+    });
+}
+
+function closeAppDialog(value) {
+    appDialogBackdrop.classList.remove("show");
+    if (appDialogResolver) appDialogResolver(value);
+    appDialogResolver = null;
+}
+
+document.getElementById("appDialogForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    closeAppDialog(appDialogInput.value);
+});
+
+function decodeToken(token) {
+    const payload = token.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64.padEnd(base64.length + (4 - base64.length % 4) % 4, "=")));
+}
+
+const token = localStorage.getItem("token");
+
+if (!token) {
+    notify("Please login first");
+    window.location.href = "../login.html";
+    throw new Error("Login required");
+}
+
+let payload;
+
+try {
+    payload = decodeToken(token);
+
+    if (payload.role !== "staff") {
+        notify("Access denied");
+        window.location.href = "../login.html";
+    }
+} catch {
+    localStorage.clear();
+    window.location.href = "../login.html";
+}
+
+document.getElementById("name").innerText = localStorage.getItem("name");
+
+/* NAVIGATION */
+function showSection(id, link) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.querySelectorAll(".menu a").forEach(a => a.classList.remove("active-link"));
+    if (link) link.classList.add("active-link");
+}
+
+/* LOGOUT */
+function logout() {
+    localStorage.clear();
+    window.location.href = "../login.html";
+}
+
+function handleExpiredSession(res) {
+    if (res.status === 401) {
+        localStorage.clear();
+        notify("Session expired. Please login again.");
+        window.location.href = "../login.html";
+        return true;
+    }
+    return false;
+}
+
+async function readApiJson(res) {
+    const payload = await res.json().catch(() => ({}));
+    return payload.data || payload;
+}
+
+/* LOAD DATA */
+async function loadAll() {
+
+    /* TICKETS */
+    const tRes = await fetch(apiUrl("/api/support"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+    if (handleExpiredSession(tRes)) return;
+    const tickets = await readApiJson(tRes);
+
+    let pending = 0;
+    ticketTable.innerHTML = "";
+
+    tickets.forEach(t => {
+        if (t.status !== "resolved") pending++;
+
+        ticketTable.innerHTML += `
+        <tr>
+            <td>${t.id}</td>
+            <td>${t.issue}</td>
+            <td>${t.status}</td>
+            <td>
+                <button class="btn" onclick="updateTicket(${t.id},'in-progress')">Start</button>
+                <button class="btn" onclick="updateTicket(${t.id},'resolved')">Done</button>
+            </td>
+        </tr>`;
+    });
+
+    ticketCount.innerText = tickets.length;
+    pendingCount.innerText = pending;
+
+    /* CUSTOMERS */
+    const cRes = await fetch(apiUrl("/api/customers"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+    if (handleExpiredSession(cRes)) return;
+    const customers = await readApiJson(cRes);
+
+    customerTable.innerHTML = "";
+
+    customers.forEach(c => {
+        customerTable.innerHTML += `
+        <tr>
+            <td>${c.id}</td>
+            <td>${c.name}</td>
+            <td>${c.email}</td>
+            <td>${c.status || "active"}</td>
+        </tr>`;
+    });
+
+    customerCount.innerText = customers.length;
+
+    /* PAYMENTS */
+    const pRes = await fetch(apiUrl("/api/bills"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+    if (handleExpiredSession(pRes)) return;
+    const payments = await readApiJson(pRes);
+
+    paymentTable.innerHTML = "";
+
+    payments.forEach(p => {
+        paymentTable.innerHTML += `
+        <tr>
+            <td>${p.customer_name}</td>
+            <td>Rs.${p.amount}</td>
+            <td>${p.status}</td>
+            <td>
+                ${p.status !== "paid"
+                    ? `<button class="btn" onclick="markPaid(${p.id})">Mark Paid</button>`
+                    : "Done"}
+            </td>
+        </tr>`;
+    });
+
+    /* CONNECTIONS */
+    connectionTable.innerHTML = "";
+
+    customers.forEach(c => {
+        connectionTable.innerHTML += `
+        <tr>
+            <td>${c.name}</td>
+            <td>${c.status || "active"}</td>
+            <td>
+                <button class="btn" onclick="updateConnection(${c.id},'active')">Activate</button>
+                <button class="btn" onclick="updateConnection(${c.id},'suspended')">Suspend</button>
+            </td>
+        </tr>`;
+    });
+
+}
+
+/* ACTIONS */
+async function handleJson(res) {
+    if (handleExpiredSession(res)) throw new Error("Session expired");
+
+    const payload = await res.json().catch(() => ({}));
+    const data = payload.data || payload;
+
+    if (!res.ok) {
+        throw new Error(payload.message || data.message || "Request failed");
+    }
+
+    return data;
+}
+
+async function addCustomer() {
+    let planOptions = "";
+
+    try {
+        const planRes = await fetch(apiUrl("/api/plans"));
+        const plans = await readApiJson(planRes);
+        if (Array.isArray(plans) && plans.length > 0) {
+            planOptions = "\n\nAvailable plans:\n" + plans.map(p => `${p.id} - ${p.name} (${p.speed}, Rs.${p.price})`).join("\n");
+        }
+    } catch (err) {
+        planOptions = "";
+    }
+
+    const name = await askText("Customer name");
+    const email = await askText("Customer email");
+    const phone = await askText("Phone");
+    const address = await askText("Address");
+    const plan_id = await askText("Plan ID" + planOptions);
+    const password = await askText("Temporary login password");
+
+    if (!name || !email || !plan_id || !password) {
+        return notify("Name, email, plan ID and password are required");
+    }
+
+    try {
+        await handleJson(await fetch(apiUrl("/api/customers"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ name, email, phone, address, plan_id, password })
+        }));
+        loadAll();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function updateTicket(id, status) {
+    const res = await fetch(apiUrl(`/api/support/${id}`), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ status })
+    });
+    if (handleExpiredSession(res)) return;
+    loadAll();
+}
+
+async function markPaid(id) {
+    const res = await fetch(apiUrl(`/api/bills/pay/${id}`), {
+        method: "PUT",
+        headers: { Authorization: "Bearer " + token }
+    });
+    if (handleExpiredSession(res)) return;
+    loadAll();
+}
+
+async function updateConnection(id, status) {
+    const res = await fetch(apiUrl(`/api/customers/${id}`), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ status })
+    });
+    if (handleExpiredSession(res)) return;
+    loadAll();
+}
+
+/* INIT */
+loadAll();
+
+</script>
+
+</body>
+</html>

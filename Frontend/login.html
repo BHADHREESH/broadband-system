@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetWave Login</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f7fb;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 50px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar img {
+            width: 120px;
+        }
+
+        .nav-links a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* HERO */
+        .hero {
+            display: flex;
+            height: 85vh;
+        }
+
+        .left {
+            flex: 1;
+            padding: 80px;
+        }
+
+        .left h1 {
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+
+        .left p {
+            font-size: 18px;
+            color: gray;
+        }
+
+        /* LOGIN CARD */
+        .right {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 350px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .login-box img {
+            width: 100px;
+            margin-bottom: 15px;
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .role-button {
+            width: 100%;
+            margin: 0;
+            padding: 10px;
+            background: #eef4ff;
+            color: #1f2937;
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        .role-button.active {
+            background: linear-gradient(45deg, #007bff, #00c6ff);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 6px 16px rgba(0, 123, 255, 0.25);
+        }
+
+        .input-box {
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .input-box input {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            outline: none;
+        }
+
+        .input-box span {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #007bff, #00c6ff);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: scale(1.03);
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none;
+        }
+
+        .message {
+            display: none;
+            margin: -5px 0 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: left;
+        }
+
+        .message.error {
+            display: block;
+            background: #fff1f2;
+            color: #be123c;
+            border: 1px solid #fecdd3;
+        }
+
+        .message.success {
+            display: block;
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+        }
+
+        .login-box p {
+            margin-top: 15px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <img src="logo.png">
+    <div class="nav-links">
+        <a href="index.html#plans">Plans</a>
+        <a href="index.html#support">Support</a>
+        <a href="index.html#about">About</a>
+    </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+
+    <div class="left">
+        <h1>Fast Internet for Everyone</h1>
+        <p>Experience ultra-speed broadband with NetWave. Reliable. Affordable. Powerful.</p>
+    </div>
+
+    <div class="right">
+        <div class="login-box">
+
+            <img src="logo.png">
+            <h2>Login</h2>
+
+            <form id="loginForm">
+                <div class="role-selector" aria-label="Select login role">
+                    <button class="role-button" type="button" data-role="admin">Admin</button>
+                    <button class="role-button" type="button" data-role="staff">Staff</button>
+                    <button class="role-button" type="button" data-role="customer">Customer</button>
+                </div>
+
+                <div class="input-box">
+                    <input type="text" id="username" placeholder="Email" autocomplete="username">
+                </div>
+
+                <div class="input-box">
+                    <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+                    <span onclick="togglePassword(this)">Show</span>
+                </div>
+
+                <div id="message" class="message"></div>
+
+                <button id="loginButton" type="submit">Sign In</button>
+            </form>
+
+            <p>New user? <a href="register.html">Register</a></p>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const BACKEND_ORIGIN = "http://localhost:5000";
+const API_BASE = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? BACKEND_ORIGIN
+    : "";
+const apiUrl = (path) => `${API_BASE}${path}`;
+let selectedRole = "customer";
+
+function showMessage(text, type = "error") {
+    const message = document.getElementById("message");
+    message.className = `message ${type}`;
+    message.innerText = text;
+}
+
+function clearMessage() {
+    const message = document.getElementById("message");
+    message.className = "message";
+    message.innerText = "";
+}
+
+function setLoading(isLoading) {
+    const button = document.getElementById("loginButton");
+    button.disabled = isLoading;
+    button.innerText = isLoading ? "Signing in..." : "Sign In";
+}
+
+function updateRoleButtons() {
+    document.querySelectorAll(".role-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.role === selectedRole);
+    });
+}
+
+function selectRole(role) {
+    selectedRole = role;
+    clearMessage();
+    updateRoleButtons();
+}
+
+/* LOGIN FUNCTION */
+async function login(event) {
+    event.preventDefault();
+
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        showMessage("Enter email and password");
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+        const res = await fetch(apiUrl("/api/auth/login"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, email: username, password, role: selectedRole })
+        });
+
+        const payload = await res.json().catch(() => ({}));
+        const data = payload.data || payload;
+
+        if (res.ok) {
+            const user = data.user || {};
+            const role = data.role || user.role || selectedRole;
+
+            if (!data.token) {
+                showMessage("Login response missing token. Please restart the backend and try again.");
+                return;
+            }
+
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("name", data.name || user.name || "");
+            localStorage.setItem("role", role);
+
+            /* ROLE REDIRECT */
+            if (role === "admin") {
+                window.location.href = "admin/dashboard.html";
+            } 
+            else if (role === "staff") {
+                window.location.href = "staff/staff.html";
+            } 
+            else {
+                window.location.href = "customer/customer.html";
+            }
+
+        } else {
+            showMessage(data.message || "Login failed");
+        }
+
+    } catch (err) {
+        console.error(err);
+        showMessage("Cannot connect to backend. Please start the server on http://localhost:5000");
+    } finally {
+        setLoading(false);
+    }
+}
+
+/* PASSWORD TOGGLE */
+function togglePassword(control) {
+    const pass = document.getElementById("password");
+    const showing = pass.type === "text";
+
+    pass.type = showing ? "password" : "text";
+    control.innerText = showing ? "Show" : "Hide";
+}
+
+document.getElementById("loginForm").addEventListener("submit", login);
+document.querySelectorAll(".role-button").forEach((button) => {
+    button.addEventListener("click", () => selectRole(button.dataset.role));
+});
+updateRoleButtons();
+
+</script>
+
+</body>
+</html>

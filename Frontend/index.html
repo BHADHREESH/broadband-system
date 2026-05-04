@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetWave Broadband</title>
+    <style>
+        :root {
+            --navy: #071b4d;
+            --blue: #0b5ed7;
+            --sky: #00a3ff;
+            --ink: #172033;
+            --muted: #62708a;
+            --line: #dfe7f3;
+            --soft: #eef5ff;
+            --white: #ffffff;
+            --green: #0f9f6e;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f6f8fc;
+            color: var(--ink);
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 14px 7vw;
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid var(--line);
+            box-shadow: 0 8px 24px rgba(7, 27, 77, 0.08);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            color: var(--navy);
+        }
+
+        .brand img {
+            width: 112px;
+            height: auto;
+            display: block;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            color: #2c3850;
+            font-weight: 650;
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .button,
+        .button-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 42px;
+            padding: 0 18px;
+            border-radius: 8px;
+            font-weight: 750;
+            border: 1px solid transparent;
+            cursor: pointer;
+        }
+
+        .button {
+            color: white;
+            background: var(--blue);
+            box-shadow: 0 10px 22px rgba(11, 94, 215, 0.22);
+        }
+
+        .button-secondary {
+            color: var(--navy);
+            background: white;
+            border-color: var(--line);
+        }
+
+        .hero {
+            min-height: calc(100vh - 71px);
+            display: grid;
+            grid-template-columns: 1.08fr 0.92fr;
+            align-items: center;
+            gap: 48px;
+            padding: 54px 7vw 42px;
+            background:
+                linear-gradient(120deg, rgba(7, 27, 77, 0.94), rgba(11, 94, 215, 0.86)),
+                url("logo.png");
+            background-size: cover, min(55vw, 620px);
+            background-position: center, 87% center;
+            background-repeat: no-repeat;
+            color: white;
+        }
+
+        .hero-copy {
+            max-width: 690px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 18px;
+            padding: 7px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+            color: #d9e8ff;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            margin: 0;
+            max-width: 760px;
+            font-size: clamp(42px, 6vw, 76px);
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .hero p {
+            max-width: 620px;
+            margin: 22px 0 0;
+            color: #dce9ff;
+            font-size: 19px;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .hero-actions .button {
+            background: white;
+            color: var(--navy);
+            box-shadow: none;
+        }
+
+        .hero-actions .button-secondary {
+            color: white;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.32);
+        }
+
+        .service-panel {
+            align-self: end;
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--ink);
+            border-radius: 8px;
+            padding: 22px;
+            box-shadow: 0 28px 70px rgba(2, 10, 35, 0.28);
+        }
+
+        .service-panel h2 {
+            margin: 0 0 14px;
+            color: var(--navy);
+            font-size: 24px;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .status-item {
+            min-height: 96px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 14px;
+            background: #fbfdff;
+        }
+
+        .status-item strong {
+            display: block;
+            color: var(--navy);
+            font-size: 26px;
+        }
+
+        .status-item span {
+            display: block;
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        section {
+            padding: 70px 7vw;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 26px;
+        }
+
+        .section-heading h2 {
+            margin: 0;
+            color: var(--navy);
+            font-size: clamp(30px, 4vw, 44px);
+            letter-spacing: 0;
+        }
+
+        .section-heading p {
+            max-width: 560px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .benefits {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .benefit,
+        .plan,
+        .about-box {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 12px 32px rgba(7, 27, 77, 0.08);
+        }
+
+        .benefit {
+            padding: 22px;
+        }
+
+        .benefit-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            background: var(--soft);
+            color: var(--blue);
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .benefit h3,
+        .plan h3,
+        .about-box h3 {
+            margin: 16px 0 8px;
+            color: var(--navy);
+            font-size: 20px;
+        }
+
+        .benefit p,
+        .plan p,
+        .about-box p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .plans-section {
+            background: white;
+        }
+
+        .plans {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .plan {
+            display: flex;
+            flex-direction: column;
+            min-height: 330px;
+            padding: 24px;
+            background: #fbfdff;
+        }
+
+        .plan.featured {
+            border-color: rgba(11, 94, 215, 0.42);
+            box-shadow: 0 18px 40px rgba(11, 94, 215, 0.16);
+        }
+
+        .plan-tag {
+            align-self: flex-start;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #e9f8f2;
+            color: var(--green);
+            font-size: 12px;
+            font-weight: 850;
+            text-transform: uppercase;
+        }
+
+        .price {
+            margin: 18px 0 8px;
+            color: var(--navy);
+            font-size: 38px;
+            font-weight: 900;
+        }
+
+        .price small {
+            color: var(--muted);
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .features {
+            display: grid;
+            gap: 10px;
+            margin: 20px 0 24px;
+            padding: 0;
+            list-style: none;
+            color: #31405a;
+        }
+
+        .features li::before {
+            content: "OK";
+            margin-right: 8px;
+            color: var(--green);
+            font-weight: 900;
+        }
+
+        .plan .button {
+            margin-top: auto;
+        }
+
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+
+        .about-box {
+            padding: 26px;
+        }
+
+        .support-band {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 34px;
+            border-radius: 8px;
+            background: var(--navy);
+            color: white;
+        }
+
+        .support-band h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+
+        .support-band p {
+            margin: 0;
+            color: #d9e5ff;
+            line-height: 1.6;
+        }
+
+        footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 24px 7vw;
+            background: #061338;
+            color: #c8d7f5;
+            font-size: 14px;
+        }
+
+        footer a {
+            font-weight: 750;
+            color: white;
+        }
+
+        @media (max-width: 980px) {
+            .navbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .nav-links,
+            .nav-actions {
+                flex-wrap: wrap;
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+            }
+
+            .service-panel {
+                align-self: auto;
+            }
+
+            .benefits,
+            .plans,
+            .about-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .navbar,
+            section,
+            footer,
+            .hero {
+                padding-left: 22px;
+                padding-right: 22px;
+            }
+
+            .nav-links {
+                gap: 14px;
+                font-size: 14px;
+            }
+
+            .hero {
+                min-height: auto;
+                padding-top: 44px;
+            }
+
+            .hero p {
+                font-size: 17px;
+            }
+
+            .status-grid,
+            .benefits,
+            .plans,
+            .about-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-heading,
+            .support-band,
+            footer {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .button,
+            .button-secondary {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="navbar">
+        <a class="brand" href="/">
+            <img src="logo.png" alt="NetWave Broadband">
+        </a>
+        <nav class="nav-links" aria-label="Public navigation">
+            <a href="#plans">Plans</a>
+            <a href="#benefits">Benefits</a>
+            <a href="#about">About</a>
+            <a href="#support">Support</a>
+        </nav>
+        <div class="nav-actions">
+            <a class="button-secondary" href="login.html">Login</a>
+            <a class="button" href="register.html">Register</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">High speed broadband for homes and teams</p>
+                <h1>NetWave Broadband</h1>
+                <p>Fast, reliable internet with simple plans, online billing, quick support, and a customer portal built to keep your connection easy to manage.</p>
+                <div class="hero-actions">
+                    <a class="button" href="#plans">View Plans</a>
+                    <a class="button-secondary" href="login.html">Customer Login</a>
+                </div>
+            </div>
+
+            <aside class="service-panel" aria-label="Service highlights">
+                <h2>Connection made simple</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <strong>24/7</strong>
+                        <span>Support access for service and billing requests.</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>1 app</strong>
+                        <span>Plans, bills, payments, and tickets in one portal.</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Fast</strong>
+                        <span>Plans for streaming, meetings, gaming, and study.</span>
+                    </div>
+                    <div class="status-item">
+                        <strong>Secure</strong>
+                        <span>Role-based login for customers, staff, and admins.</span>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <section id="benefits">
+            <div class="section-heading">
+                <h2>Why customers choose NetWave</h2>
+                <p>Everything is designed around dependable connectivity and fewer service headaches.</p>
+            </div>
+            <div class="benefits">
+                <article class="benefit">
+                    <div class="benefit-icon">UP</div>
+                    <h3>Consistent speed</h3>
+                    <p>Choose a plan that fits daily browsing, HD streaming, online classes, and office work.</p>
+                </article>
+                <article class="benefit">
+                    <div class="benefit-icon">Rs.</div>
+                    <h3>Easy billing</h3>
+                    <p>View bills, download receipts, and make payments without visiting the office.</p>
+                </article>
+                <article class="benefit">
+                    <div class="benefit-icon">?</div>
+                    <h3>Quick support</h3>
+                    <p>Raise a support ticket and track service requests directly from your account.</p>
+                </article>
+                <article class="benefit">
+                    <div class="benefit-icon">OK</div>
+                    <h3>Local care</h3>
+                    <p>Staff tools help the team respond faster to connection, billing, and plan questions.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="plans" class="plans-section">
+            <div class="section-heading">
+                <h2>Plans for every home</h2>
+                <p>Start with a simple package and upgrade when your usage grows. Final availability depends on your service area.</p>
+            </div>
+            <div class="plans" id="planCards">
+                <article class="plan">
+                    <span class="plan-tag">Starter</span>
+                    <h3>Basic Home</h3>
+                    <div class="price">Rs.499 <small>/ month</small></div>
+                    <p>Everyday browsing and messaging for light users.</p>
+                    <ul class="features">
+                        <li>Up to 50 Mbps</li>
+                        <li>Monthly billing</li>
+                        <li>Customer portal access</li>
+                    </ul>
+                    <a class="button" href="register.html">Choose Plan</a>
+                </article>
+                <article class="plan featured">
+                    <span class="plan-tag">Popular</span>
+                    <h3>Family Plus</h3>
+                    <div class="price">Rs.799 <small>/ month</small></div>
+                    <p>Streaming, video calls, online classes, and shared devices.</p>
+                    <ul class="features">
+                        <li>Up to 100 Mbps</li>
+                        <li>Priority ticket routing</li>
+                        <li>Online payments and receipts</li>
+                    </ul>
+                    <a class="button" href="register.html">Choose Plan</a>
+                </article>
+                <article class="plan">
+                    <span class="plan-tag">Power</span>
+                    <h3>Work Pro</h3>
+                    <div class="price">Rs.999 <small>/ month</small></div>
+                    <p>Higher speed for work-from-home, gaming, and heavy streaming.</p>
+                    <ul class="features">
+                        <li>Up to 150 Mbps</li>
+                        <li>Fast service support</li>
+                        <li>Usage and billing dashboard</li>
+                    </ul>
+                    <a class="button" href="register.html">Choose Plan</a>
+                </article>
+            </div>
+        </section>
+
+        <section id="about">
+            <div class="section-heading">
+                <h2>About NetWave</h2>
+                <p>NetWave is a broadband service system focused on reliable internet, transparent billing, and responsive customer support.</p>
+            </div>
+            <div class="about-grid">
+                <article class="about-box">
+                    <h3>Our promise</h3>
+                    <p>We keep broadband service straightforward: clear plans, secure accounts, bill visibility, and a support process that customers can follow.</p>
+                </article>
+                <article class="about-box">
+                    <h3>Built for operations</h3>
+                    <p>Admin and staff dashboards help manage customers, payments, support tickets, and service records from one connected platform.</p>
+                </article>
+            </div>
+        </section>
+
+        <section id="support">
+            <div class="support-band">
+                <div>
+                    <h2>Need help with your connection?</h2>
+                    <p>Login to raise a ticket, check your bill, download receipts, or contact the service team.</p>
+                </div>
+                <a class="button" href="login.html">Login for Support</a>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>(c) 2026 NetWave Broadband. All rights reserved.</span>
+        <span><a href="login.html">Login</a> - <a href="register.html">Register</a></span>
+    </footer>
+</body>
+</html>

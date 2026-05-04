@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetWave Customer</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #eef3fb;
+    color: #172033;
+}
+
+.navbar {
+    background: #071b4d;
+    color: white;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.18);
+}
+
+.navbar h2 {
+    margin: 0;
+    font-size: 26px;
+}
+
+.navbar span {
+    margin-right: 14px;
+    color: #d9e5ff;
+    font-weight: 600;
+}
+
+.btn {
+    background: #0b5ed7;
+    color: white;
+    border: none;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn:disabled {
+    background: #9aa7b8;
+    cursor: not-allowed;
+}
+
+.btn:hover:not(:disabled) {
+    background: #084db3;
+}
+
+.navbar .btn {
+    background: white;
+    color: #071b4d;
+}
+
+.container {
+    padding: 28px;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.hero-panel {
+    background: linear-gradient(135deg, #071b4d, #0b5ed7);
+    color: white;
+    padding: 28px;
+    border-radius: 14px;
+    margin-bottom: 24px;
+    box-shadow: 0 14px 34px rgba(7,27,77,0.18);
+}
+
+.hero-panel h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+}
+
+.hero-panel p {
+    margin: 0;
+    color: #d9e5ff;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    padding: 22px;
+    border-radius: 12px;
+    border: 1px solid #e4ebf7;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.08);
+}
+
+.card h3 {
+    margin: 0 0 8px;
+    color: #60708c;
+    font-size: 14px;
+}
+
+.card h2 {
+    margin: 0;
+    color: #071b4d;
+}
+
+.progress {
+    background: #e8edf6;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 10px;
+    background: linear-gradient(90deg, #0b5ed7, #12b3ff);
+    width: 0%;
+}
+
+.table-box {
+    background: white;
+    padding: 6px 18px 18px;
+    border-radius: 12px;
+    margin-top: 20px;
+    border: 1px solid #e4ebf7;
+    box-shadow: 0 8px 24px rgba(7,27,77,0.08);
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 14px 10px;
+    border-bottom: 1px solid #edf1f8;
+    text-align: left;
+}
+
+th {
+    color: #60708c;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.section { margin-top: 30px; }
+
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
+
+.section h2 {
+    margin: 0;
+    color: #071b4d;
+}
+
+.tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 24px;
+}
+
+.tab-btn {
+    width: auto;
+    background: white;
+    color: #071b4d;
+    border: 1px solid #d5deec;
+}
+
+.tab-btn.active {
+    background: #0b5ed7;
+    color: white;
+    border-color: #0b5ed7;
+}
+
+.plan-summary {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 20px;
+    align-items: stretch;
+}
+
+.plan-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.detail-box {
+    background: #f8fbff;
+    border: 1px solid #e4ebf7;
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.detail-box span {
+    color: #60708c;
+    display: block;
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.detail-box strong {
+    color: #071b4d;
+    font-size: 18px;
+}
+
+input {
+    padding: 11px 12px;
+    margin: 8px 8px 8px 0;
+    border-radius: 8px;
+    border: 1px solid #d5deec;
+    min-width: 260px;
+}
+
+.toast-stack {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    display: grid;
+    gap: 10px;
+    z-index: 40;
+}
+
+.toast {
+    width: min(360px, calc(100vw - 36px));
+    background: #071b4d;
+    color: white;
+    border-radius: 10px;
+    padding: 13px 15px;
+    box-shadow: 0 16px 36px rgba(7,27,77,0.24);
+    font-weight: 700;
+}
+
+.toast.error { background: #9f1d1d; }
+.toast.success { background: #16804f; }
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7,27,77,0.42);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 30;
+}
+
+.modal-backdrop.show {
+    display: flex;
+}
+
+.modal {
+    width: min(560px, 100%);
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e4ebf7;
+    box-shadow: 0 24px 70px rgba(7,27,77,0.24);
+    overflow: hidden;
+}
+
+.modal-header,
+.modal-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px;
+}
+
+.modal-header {
+    border-bottom: 1px solid #edf1f8;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #071b4d;
+}
+
+.modal-body {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+}
+
+.modal-body label {
+    color: #40516d;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.modal-body input,
+.modal-body textarea {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.modal-body textarea {
+    min-height: 86px;
+    resize: vertical;
+}
+
+.modal-message {
+    min-height: 20px;
+    color: #c62828;
+    font-weight: 700;
+}
+
+.btn.secondary {
+    background: #eef3fb;
+    color: #071b4d;
+}
+
+@media (max-width: 850px) {
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    .plan-summary,
+    .plan-details {
+        grid-template-columns: 1fr;
+    }
+
+    .navbar {
+        padding: 14px 18px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .navbar > div {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .container {
+        padding: 18px;
+    }
+
+    .hero-panel {
+        padding: 22px;
+        border-radius: 12px;
+    }
+
+    .hero-panel h1 {
+        font-size: 26px;
+    }
+
+    .tabs .btn,
+    input {
+        width: 100%;
+        min-width: 0;
+    }
+
+    td .btn {
+        margin: 4px 0;
+        width: 100%;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <h2>NetWave</h2>
+    <div>
+        <span id="username"></span>
+        <button class="btn" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div class="container">
+
+<div class="hero-panel">
+    <h1>Your broadband dashboard</h1>
+    <p>Review your plan first, then continue to bills, payment, and support when needed.</p>
+</div>
+
+<div class="tabs">
+    <button class="btn tab-btn active" onclick="showSection('planSection', this)">My Plan</button>
+    <button class="btn tab-btn" id="paymentTab" onclick="showSection('paymentSection', this)">Bills & Payment</button>
+    <button class="btn tab-btn" onclick="showSection('supportSection', this)">Support</button>
+    <button class="btn tab-btn" onclick="showSection('aiSection', this)">AI Help</button>
+</div>
+
+<div id="planSection" class="section active">
+    <div class="plan-summary">
+        <div class="card">
+            <h3>Current Plan</h3>
+            <h2 id="planName">Loading plan...</h2>
+            <p id="planText">Please wait while we load your broadband plan.</p>
+
+            <div class="plan-details">
+                <div class="detail-box"><span>Speed</span><strong id="planSpeed">--</strong></div>
+                <div class="detail-box"><span>Monthly Price</span><strong id="planPrice">--</strong></div>
+                <div class="detail-box"><span>Validity</span><strong id="planValidity">--</strong></div>
+                <div class="detail-box"><span>Status</span><strong id="connectionStatus">--</strong></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Customer Details</h3>
+            <h2 id="customerId">--</h2>
+            <p id="customerPhone">Phone loading...</p>
+            <p id="customerAddress">Address loading...</p>
+            <button class="btn" onclick="editProfile()">Edit Profile</button>
+            <button class="btn" onclick="showSection('paymentSection', document.getElementById('paymentTab'))">Go to Payment</button>
+        </div>
+    </div>
+
+<div class="card">
+    <h3>Data Usage</h3>
+    <h2 id="usageText">Loading usage...</h2>
+    <div class="progress"><div class="progress-bar" id="usageBar"></div></div>
+    <canvas id="usageChart" height="80"></canvas>
+</div>
+
+<div>
+    <h2>Payment History</h2>
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Amount</th>
+                    <th>Method</th>
+                    <th>Receipt</th>
+                    <th>Paid At</th>
+                </tr>
+            </thead>
+            <tbody id="paymentHistoryTable"></tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+<div id="paymentSection" class="section">
+<div class="cards">
+    <div class="card">
+        <h3>Current Bill</h3>
+        <h2 id="billAmount">Rs.0</h2>
+    </div>
+
+    <div class="card">
+        <h3>Due Date</h3>
+        <h2 id="dueDate">--</h2>
+    </div>
+
+    <div class="card">
+        <h3>Payment</h3>
+        <button class="btn" id="payButton" onclick="payNow(currentAmount)">
+            Pay Rs.<span id="payAmount">0</span>
+        </button>
+    </div>
+</div>
+
+<div>
+    <h2>Bill History</h2>
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="billTable"></tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+<div id="supportSection" class="section">
+    <h2>Support</h2>
+    <input id="issue" placeholder="Enter issue...">
+    <button class="btn" onclick="raiseTicket()">Submit</button>
+
+    <div class="table-box">
+        <table>
+            <tbody id="ticketTable"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="aiSection" class="section">
+    <h2>AI Help</h2>
+    <input id="aiQuestion" placeholder="Ask about bills, plans, payments...">
+    <button class="btn" onclick="askAI()">Ask</button>
+
+    <div class="table-box">
+        <table>
+            <tbody>
+                <tr><td id="aiAnswer">Ask a question to get quick help.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+<div class="modal-backdrop" id="profileModalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+        <div class="modal-header">
+            <h3 id="profileModalTitle">Edit Profile</h3>
+            <button class="btn secondary" type="button" onclick="closeProfileModal()">Close</button>
+        </div>
+        <form id="profileForm">
+            <div class="modal-body">
+                <label for="profileNameInput">Name</label>
+                <input id="profileNameInput" autocomplete="name" required>
+
+                <label for="profilePhoneInput">Phone</label>
+                <input id="profilePhoneInput" autocomplete="tel">
+
+                <label for="profileAddressInput">Address</label>
+                <textarea id="profileAddressInput"></textarea>
+
+                <div class="modal-message" id="profileFormMessage"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn secondary" type="button" onclick="closeProfileModal()">Cancel</button>
+                <button class="btn" id="profileSubmitButton" type="submit">Save Profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+
+const BACKEND_ORIGIN = "http://localhost:5000";
+const API_BASE = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? BACKEND_ORIGIN
+    : "";
+const apiUrl = (path) => `${API_BASE}${path}`;
+function notify(message, type = "error") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    toastStack.appendChild(toast);
+    setTimeout(() => toast.remove(), 3600);
+}
+
+function decodeToken(token) {
+    const payload = token.split(".")[1];
+    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(base64.padEnd(base64.length + (4 - base64.length % 4) % 4, "=")));
+}
+
+let currentAmount = 0;
+let currentBillId = null;
+let currentProfile = null;
+let usageChart;
+const token = localStorage.getItem("token");
+
+/* AUTH CHECK */
+if (!token) {
+    notify("Please login first");
+    window.location.href = "../login.html";
+    throw new Error("Login required");
+} else {
+    try {
+        const payload = decodeToken(token);
+        if (payload.role !== "customer") {
+            notify("Access denied");
+            window.location.href = "../login.html";
+        }
+    } catch {
+        localStorage.clear();
+        window.location.href = "../login.html";
+    }
+}
+
+document.getElementById("username").innerText =
+    localStorage.getItem("name") || "Customer";
+
+/* LOGOUT */
+function logout() {
+    localStorage.clear();
+    window.location.href = "../login.html";
+}
+
+function handleExpiredSession(res) {
+    if (res.status === 401) {
+        localStorage.clear();
+        notify("Session expired. Please login again.");
+        window.location.href = "../login.html";
+        return true;
+    }
+    return false;
+}
+
+async function readApiJson(res) {
+    const payload = await res.json().catch(() => ({}));
+    return payload.data || payload;
+}
+
+function showSection(id, button) {
+    document.querySelectorAll(".section").forEach(section => section.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.querySelectorAll(".tab-btn").forEach(tab => tab.classList.remove("active"));
+    if (button) button.classList.add("active");
+}
+
+function money(value) {
+    return "Rs." + Number(value || 0).toLocaleString("en-IN");
+}
+
+async function loadPlan() {
+    const res = await fetch(apiUrl("/api/customers/me"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const profile = await readApiJson(res);
+
+    if (!res.ok) {
+        document.getElementById("planName").innerText = "Plan unavailable";
+        document.getElementById("planText").innerText = profile.message || "Unable to load your plan details.";
+        return;
+    }
+
+    currentProfile = profile;
+    document.getElementById("planName").innerText = profile.plan_name || "Broadband Plan";
+    document.getElementById("planSpeed").innerText = profile.speed || "--";
+    document.getElementById("planPrice").innerText = money(profile.price);
+    document.getElementById("planValidity").innerText = `${profile.validity || 30} days`;
+    document.getElementById("connectionStatus").innerText = profile.status || "active";
+    document.getElementById("customerId").innerText = `Customer ID: ${profile.id}`;
+    document.getElementById("customerPhone").innerText = profile.phone || "Phone not available";
+    document.getElementById("customerAddress").innerText = profile.address || "Address not available";
+    document.getElementById("planText").innerText =
+        `${profile.plan_name} gives you ${profile.speed} broadband for ${money(profile.price)} every ${profile.validity || 30} days. You can review bills and pay from the Bills & Payment tab.`;
+}
+
+async function editProfile() {
+    if (!currentProfile) return notify("Profile is still loading");
+
+    document.getElementById("profileNameInput").value = currentProfile.name || "";
+    document.getElementById("profilePhoneInput").value = currentProfile.phone || "";
+    document.getElementById("profileAddressInput").value = currentProfile.address || "";
+    document.getElementById("profileFormMessage").innerText = "";
+    document.getElementById("profileModalBackdrop").classList.add("show");
+    document.getElementById("profileNameInput").focus();
+}
+
+function closeProfileModal() {
+    document.getElementById("profileModalBackdrop").classList.remove("show");
+}
+
+document.getElementById("profileForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const name = document.getElementById("profileNameInput").value.trim();
+    const phone = document.getElementById("profilePhoneInput").value.trim();
+    const address = document.getElementById("profileAddressInput").value.trim();
+
+    if (!name) {
+        document.getElementById("profileFormMessage").innerText = "Name is required";
+        return;
+    }
+
+    document.getElementById("profileSubmitButton").disabled = true;
+
+    const res = await fetch(apiUrl("/api/customers/me"), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ name, phone, address })
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const data = await readApiJson(res);
+
+    if (!res.ok) {
+        document.getElementById("profileFormMessage").innerText = data.message || "Unable to update profile";
+        document.getElementById("profileSubmitButton").disabled = false;
+        return;
+    }
+
+    closeProfileModal();
+    notify("Profile updated", "success");
+    document.getElementById("profileSubmitButton").disabled = false;
+    loadPlan();
+});
+
+async function loadUsage() {
+    const res = await fetch(apiUrl("/api/usage/me"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const usage = await readApiJson(res);
+
+    if (!res.ok || !Array.isArray(usage) || usage.length === 0) {
+        document.getElementById("usageText").innerText = "No usage data found";
+        document.getElementById("usageBar").style.width = "0%";
+        return;
+    }
+
+    const latest = usage[usage.length - 1];
+    const usedGb = Number(latest.used_gb || 0);
+    const totalGb = Number(latest.total_gb || 0);
+    const percent = totalGb > 0 ? Math.min((usedGb / totalGb) * 100, 100) : 0;
+
+    document.getElementById("usageText").innerText = `${usedGb.toLocaleString("en-IN")} GB / ${totalGb.toLocaleString("en-IN")} GB`;
+    document.getElementById("usageBar").style.width = `${percent}%`;
+
+    usageChart.data.labels = usage.map(row =>
+        new Date(row.usage_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+    );
+    usageChart.data.datasets[0].data = usage.map(row => Number(row.used_gb || 0));
+    usageChart.update();
+}
+
+/* LOAD BILLS */
+async function loadBills() {
+
+    const res = await fetch(apiUrl("/api/bills"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const data = await readApiJson(res);
+    const table = document.getElementById("billTable");
+    const payButton = document.getElementById("payButton");
+    table.innerHTML = "";
+
+    if (!res.ok) {
+        table.innerHTML = `<tr><td colspan="4">${data.message || "Unable to load bills"}</td></tr>`;
+        payButton.disabled = true;
+        return;
+    }
+
+    data.forEach(b => {
+        const status = String(b.status || "").toLowerCase();
+        const isPayable = status !== "paid";
+
+        table.innerHTML += `
+        <tr>
+            <td>Rs.${b.amount}</td>
+            <td>${b.status}</td>
+            <td>${b.bill_date}</td>
+            <td>
+                ${isPayable
+                    ? `<button class="btn" onclick="payNow(${b.amount}, ${b.id})">Pay</button>`
+                    : "Paid"}
+                <button class="btn" onclick="downloadBill(${b.id})">Download</button>
+            </td>
+        </tr>`;
+    });
+
+    const currentBill = data.find(b => String(b.status || "").toLowerCase() !== "paid");
+
+    if (currentBill) {
+        currentAmount = currentBill.amount;
+        currentBillId = currentBill.id;
+        document.getElementById("billAmount").innerText = "Rs." + currentBill.amount;
+        document.getElementById("dueDate").innerText = currentBill.due_date;
+        document.getElementById("payAmount").innerText = currentBill.amount;
+        payButton.disabled = false;
+    } else {
+        currentAmount = 0;
+        currentBillId = null;
+        document.getElementById("billAmount").innerText = "Rs.0";
+        document.getElementById("dueDate").innerText = "--";
+        document.getElementById("payAmount").innerText = "0";
+        payButton.disabled = true;
+
+        if (data.length === 0) {
+            table.innerHTML = `<tr><td colspan="4">No bills found</td></tr>`;
+        }
+    }
+}
+
+async function downloadBill(billId) {
+    try {
+        const res = await fetch(apiUrl(`/api/bills/download/${billId}`), {
+            headers: { Authorization: "Bearer " + token }
+        });
+
+        if (handleExpiredSession(res)) return;
+
+        if (!res.ok) {
+            const error = await readApiJson(res);
+            notify(error.message || "Unable to download bill");
+            return;
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `netwave-bill-${billId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error(err);
+        notify("Unable to download bill");
+    }
+}
+
+async function loadPayments() {
+    const res = await fetch(apiUrl("/api/payments"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const data = await readApiJson(res);
+    const table = document.getElementById("paymentHistoryTable");
+    table.innerHTML = "";
+
+    if (!res.ok) {
+        table.innerHTML = `<tr><td colspan="4">${data.message || "Unable to load payments"}</td></tr>`;
+        return;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+        table.innerHTML = `<tr><td colspan="4">No payments found</td></tr>`;
+        return;
+    }
+
+    data.forEach(payment => {
+        table.innerHTML += `
+        <tr>
+            <td>Rs.${payment.amount}</td>
+            <td>${payment.method || "--"}</td>
+            <td>${payment.receipt_number || "--"}</td>
+            <td>${payment.paid_at ? new Date(payment.paid_at).toLocaleString("en-IN") : "--"}</td>
+        </tr>`;
+    });
+}
+
+/* PAYMENT */
+async function payNow(amount, billId = currentBillId) {
+
+    if (!billId) {
+        notify("No bill selected for payment");
+        return;
+    }
+
+    try {
+        const res = await fetch(apiUrl("/api/payment/create-order"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ amount })
+        });
+
+        if (handleExpiredSession(res)) return;
+
+        const order = await readApiJson(res);
+
+        if (!res.ok) {
+            notify(order.message || "Unable to create payment order");
+            return;
+        }
+
+        if (!window.Razorpay) {
+            notify("Razorpay checkout did not load");
+            return;
+        }
+
+        const options = {
+            key: order.key_id,
+            amount: order.amount,
+            currency: "INR",
+            name: "NetWave",
+            description: "Bill Payment",
+            order_id: order.id,
+
+            handler: async function (response) {
+
+                const verifyRes = await fetch(apiUrl("/api/payment/verify"), {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: "Bearer " + token
+                    },
+                    body: JSON.stringify({ ...response, bill_id: billId })
+                });
+
+                if (handleExpiredSession(verifyRes)) return;
+
+                if (!verifyRes.ok) {
+                    notify("Payment verification failed");
+                    return;
+                }
+
+                notify("Payment successful", "success");
+                loadBills();
+                loadPayments();
+            }
+        };
+
+        new Razorpay(options).open();
+
+    } catch (err) {
+        console.error(err);
+        notify("Payment failed");
+    }
+}
+
+/* SUPPORT */
+async function loadTickets() {
+    const res = await fetch(apiUrl("/api/support"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const data = await readApiJson(res);
+    const table = document.getElementById("ticketTable");
+    table.innerHTML = "";
+
+    data.forEach(t => {
+        table.innerHTML += `<tr><td>${t.issue}</td><td>${t.status}</td></tr>`;
+    });
+}
+
+async function raiseTicket() {
+    const issue = document.getElementById("issue").value;
+
+    if (!issue) {
+        notify("Enter issue");
+        return;
+    }
+
+    const res = await fetch(apiUrl("/api/support"), {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ issue })
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    notify("Ticket submitted", "success");
+    document.getElementById("issue").value = "";
+    loadTickets();
+}
+
+async function askAI() {
+    const message = document.getElementById("aiQuestion").value.trim();
+    const answer = document.getElementById("aiAnswer");
+
+    if (!message) {
+        notify("Enter a question");
+        return;
+    }
+
+    answer.innerText = "Thinking...";
+
+    try {
+        const res = await fetch(apiUrl("/api/ai/ask"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ message })
+        });
+
+        if (handleExpiredSession(res)) return;
+
+        const data = await readApiJson(res);
+        answer.innerText = data.reply || data.message || "Unable to answer right now";
+    } catch (err) {
+        answer.innerText = "AI service is unavailable right now";
+    }
+}
+
+/* CHART */
+usageChart = new Chart(document.getElementById("usageChart"), {
+    type: "line",
+    data: {
+        labels: [],
+        datasets: [{ data: [] }]
+    }
+});
+
+/* INIT */
+loadPlan();
+loadUsage();
+loadBills();
+loadPayments();
+loadTickets();
+
+</script>
+
+</body>
+</html>

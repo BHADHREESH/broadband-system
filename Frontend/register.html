@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetWave Register</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #eef3fb;
+            color: #172033;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 50px;
+            background: #071b4d;
+            box-shadow: 0 8px 24px rgba(7,27,77,0.18);
+        }
+
+        .navbar img {
+            width: 120px;
+        }
+
+        .nav-links a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #d9e5ff;
+            font-weight: 500;
+        }
+
+        .hero {
+            display: flex;
+            min-height: 85vh;
+        }
+
+        .left {
+            flex: 1;
+            padding: 80px;
+        }
+
+        .left h1 {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: #071b4d;
+        }
+
+        .left p {
+            font-size: 18px;
+            color: gray;
+        }
+
+        .right {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px 0;
+        }
+
+        .register-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            width: 360px;
+            box-shadow: 0 10px 40px rgba(7,27,77,0.18);
+            text-align: center;
+        }
+
+        .register-box img {
+            width: 100px;
+            margin-bottom: 15px;
+        }
+
+        .register-box h2 {
+            margin-bottom: 20px;
+        }
+
+        .input-box {
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .input-box input,
+        .input-box select {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            outline: none;
+            font-size: 14px;
+            background: white;
+        }
+
+        .input-box input:focus,
+        .input-box select:focus {
+            border-color: #007bff;
+        }
+
+        .input-box span {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #007bff;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .input-box.password input {
+            padding-right: 58px;
+        }
+
+        .error {
+            color: #dc3545;
+            font-size: 12px;
+            text-align: left;
+            min-height: 16px;
+            margin-top: -6px;
+        }
+
+        .form-message {
+            min-height: 20px;
+            margin: 8px 0 0;
+            color: #dc3545;
+            font-weight: 700;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .form-message.success {
+            color: #16804f;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #071b4d, #0b5ed7);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: scale(1.03);
+        }
+
+        .register-box p {
+            margin-top: 15px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="navbar">
+    <img src="logo.png">
+    <div class="nav-links">
+        <a href="index.html#plans">Plans</a>
+        <a href="index.html#support">Support</a>
+        <a href="index.html#about">About</a>
+    </div>
+</div>
+
+<div class="hero">
+
+    <div class="left">
+        <h1>Join NetWave Today</h1>
+        <p>Create your account and manage broadband plans, payments, support, and service updates in one place.</p>
+    </div>
+
+    <div class="right">
+        <div class="register-box">
+            <img src="logo.png">
+            <h2>Create Account</h2>
+
+            <div class="input-box">
+                <input type="text" id="name" placeholder="Name">
+            </div>
+
+            <div class="input-box">
+                <input type="email" id="email" placeholder="Email">
+            </div>
+
+            <div class="input-box">
+                <input type="tel" id="phone" placeholder="Phone">
+            </div>
+
+            <div class="input-box">
+                <input type="text" id="address" placeholder="Address">
+            </div>
+
+            <div class="input-box">
+                <select id="plan_id">
+                    <option value="">Loading plans...</option>
+                </select>
+            </div>
+
+            <div class="input-box password">
+                <input type="password" id="password" placeholder="Password">
+                <span onclick="togglePassword('password', this)">Show</span>
+            </div>
+
+            <div class="input-box password">
+                <input type="password" id="confirmPassword" placeholder="Confirm Password">
+                <span onclick="togglePassword('confirmPassword', this)">Show</span>
+            </div>
+
+            <div id="passMsg" class="error"></div>
+            <div id="formMessage" class="form-message"></div>
+
+            <button onclick="register()">Register</button>
+
+            <p>Already have account? <a href="login.html">Login</a></p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+const BACKEND_ORIGIN = "http://localhost:5000";
+const API_BASE = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? BACKEND_ORIGIN
+    : "";
+const apiUrl = (path) => `${API_BASE}${path}`;
+
+function showMessage(message, type = "error") {
+    const box = document.getElementById("formMessage");
+    box.innerText = message;
+    box.className = `form-message ${type === "success" ? "success" : ""}`;
+}
+
+async function loadPlans() {
+    const planSelect = document.getElementById("plan_id");
+
+    try {
+        const res = await fetch(apiUrl("/api/plans"));
+        const payload = await res.json().catch(() => ({}));
+        const plans = payload.data || payload;
+
+        planSelect.innerHTML = `<option value="">Choose a plan</option>`;
+
+        if (!res.ok || !Array.isArray(plans) || plans.length === 0) {
+            planSelect.innerHTML = `<option value="">No plans available</option>`;
+            return;
+        }
+
+        plans.forEach(plan => {
+            const option = document.createElement("option");
+            option.value = plan.id;
+            option.textContent = `${plan.name} - ${plan.speed} - Rs.${plan.price}`;
+            planSelect.appendChild(option);
+        });
+    } catch (err) {
+        planSelect.innerHTML = `<option value="">Start server to load plans</option>`;
+    }
+}
+
+function togglePassword(id, control) {
+    const input = document.getElementById(id);
+    const isPassword = input.type === "password";
+
+    input.type = isPassword ? "text" : "password";
+    control.innerText = isPassword ? "Hide" : "Show";
+}
+
+document.getElementById("confirmPassword").addEventListener("input", function() {
+    const password = document.getElementById("password").value;
+    const confirm = this.value;
+    const msg = document.getElementById("passMsg");
+
+    if (confirm && password !== confirm) {
+        msg.innerText = "Passwords do not match";
+    } else {
+        msg.innerText = "";
+    }
+});
+
+async function register() {
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const address = document.getElementById("address").value.trim();
+    const plan_id = document.getElementById("plan_id").value;
+    const password = document.getElementById("password").value.trim();
+    const confirmPassword = document.getElementById("confirmPassword").value.trim();
+    showMessage("");
+
+    if (!name || !email || !phone || !address || !plan_id || !password || !confirmPassword) {
+        showMessage("All fields are required");
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showMessage("Passwords do not match");
+        return;
+    }
+
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[a-zA-Z\d@$!%*?&]{12,}$/.test(password)) {
+        showMessage("Password must be at least 12 characters with uppercase, lowercase, number, and special character");
+        return;
+    }
+
+    try {
+        const res = await fetch(apiUrl("/api/auth/register"), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name, email, phone, address, plan_id, password })
+        });
+
+        const payload = await res.json().catch(() => ({}));
+        const data = payload.data || payload;
+
+        if (res.ok) {
+            showMessage(payload.message || "Registration submitted. Please wait for admin approval.", "success");
+            document.getElementById("password").value = "";
+            document.getElementById("confirmPassword").value = "";
+        } else {
+            showMessage(payload.message || data.message || "Registration failed");
+        }
+
+    } catch (err) {
+        console.error(err);
+        showMessage("Cannot connect to backend. Please start the server on http://localhost:5000");
+    }
+}
+
+loadPlans();
+
+</script>
+
+</body>
+</html>
