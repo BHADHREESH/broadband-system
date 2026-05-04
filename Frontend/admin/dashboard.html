@@ -898,6 +898,19 @@ function money(value) {
     return "Rs." + Number(value || 0).toLocaleString("en-IN");
 }
 
+function formatDateTime(value) {
+    if (!value) return "--";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "--";
+    return date.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+}
+
 function statusBadge(status) {
     const value = status || "active";
     const className = value === "active" ? "paid" : "unpaid";
@@ -1163,7 +1176,7 @@ async function loadPayments() {
                 <td>${money(p.amount)}</td>
                 <td>${p.method || "--"}</td>
                 <td>${p.receipt_number || "--"}</td>
-                <td>${p.paid_at ? new Date(p.paid_at).toLocaleString("en-IN") : "--"}</td>
+                <td>${formatDateTime(p.paid_at)}</td>
             </tr>`;
         });
         if (paymentsData.length === 0) showTableMessage(paymentTable, "No payments found", 5);
@@ -1185,7 +1198,7 @@ async function loadNotifications() {
                 <td>${n.channel}</td>
                 <td>${n.notification_type}</td>
                 <td>${n.status}</td>
-                <td>${n.created_at ? new Date(n.created_at).toLocaleString("en-IN") : "--"}</td>
+                <td>${formatDateTime(n.created_at)}</td>
             </tr>`;
         });
         if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 5);

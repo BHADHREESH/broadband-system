@@ -708,6 +708,17 @@ function money(value) {
     return "Rs." + Number(value || 0).toLocaleString("en-IN");
 }
 
+function formatDate(value) {
+    if (!value) return "--";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "--";
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
+}
+
 async function loadPlan() {
     const res = await fetch(apiUrl("/api/customers/me"), {
         headers: { Authorization: "Bearer " + token }
@@ -848,7 +859,7 @@ async function loadBills() {
         <tr>
             <td>Rs.${b.amount}</td>
             <td>${b.status}</td>
-            <td>${b.bill_date}</td>
+            <td>${formatDate(b.bill_date)}</td>
             <td>
                 ${isPayable
                     ? `<button class="btn" onclick="payNow(${b.amount}, ${b.id})">Pay</button>`
@@ -864,7 +875,7 @@ async function loadBills() {
         currentAmount = currentBill.amount;
         currentBillId = currentBill.id;
         document.getElementById("billAmount").innerText = "Rs." + currentBill.amount;
-        document.getElementById("dueDate").innerText = currentBill.due_date;
+        document.getElementById("dueDate").innerText = formatDate(currentBill.due_date);
         document.getElementById("payAmount").innerText = currentBill.amount;
         payButton.disabled = false;
     } else {
