@@ -75,7 +75,9 @@ app.use(helmet({
             "script-src-attr": ["'unsafe-inline'"],
             "style-src": ["'self'", "'unsafe-inline'"],
             "img-src": ["'self'", "data:", "https:"],
-            "connect-src": ["'self'", "https://api.razorpay.com"]
+            "connect-src": ["'self'", "https://api.razorpay.com"],
+            "frame-src": ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+            "child-src": ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"]
         }
     }
 }));
