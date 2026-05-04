@@ -130,7 +130,7 @@ exports.updateCustomer = async (req, res) => {
     const { id } = req.params;
     const { name, email, phone, address, plan_id, status } = req.body;
 
-    if (status && !["active", "suspended"].includes(status)) {
+    if (status && !["pending", "active", "suspended"].includes(status)) {
         throw httpError("Invalid customer status", 400);
     }
 
@@ -162,6 +162,38 @@ exports.updateCustomer = async (req, res) => {
     }
 
     return sendSuccess(res, "Customer updated");
+};
+
+exports.approveCustomer = async (req, res) => {
+    const { id } = req.params;
+    const result = await db.executeQuery(
+        "UPDATE customers SET status = 'active' WHERE id = ? AND status = 'pending'",
+        [id]
+    );
+
+    if (result.affectedRows === 0) {
+        throw httpError("Pending customer not found", 404);
+    }
+
+    return sendSuccess(res, "Customer approved");
+};
+
+exports.rejectCustomer = async (req, res) => {
+    const { id } = req.params;
+    const results = await db.executeQuery(
+        "SELECT email FROM customers WHERE id = ? AND status = 'pending' LIMIT 1",
+        [id]
+    );
+
+    if (results.length === 0) {
+        throw httpError("Pending customer not found", 404);
+    }
+
+    const email = results[0].email;
+    await db.executeQuery("DELETE FROM customers WHERE id = ? AND status = 'pending'", [id]);
+    await db.executeQuery("DELETE FROM users WHERE email = ? AND role = 'customer'", [email]);
+
+    return sendSuccess(res, "Customer registration rejected");
 };
 
 exports.deleteCustomer = async (req, res) => {

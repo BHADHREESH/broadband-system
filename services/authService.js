@@ -101,7 +101,7 @@ async function registerCustomer({ name, email, phone, address, plan_id, password
         );
 
         await connection.query(
-            "INSERT INTO customers (name, email, phone, address, plan_id) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO customers (name, email, phone, address, plan_id, status) VALUES (?, ?, ?, ?, ?, 'pending')",
             [cleanName, cleanEmail, cleanPhone, cleanAddress, planId]
         );
 
@@ -113,7 +113,10 @@ async function registerCustomer({ name, email, phone, address, plan_id, password
         connection.release();
     }
 
-    return { role: "customer" };
+    return {
+        role: "customer",
+        status: "pending"
+    };
 }
 
 async function login({ username, email, password, role }) {
@@ -133,6 +136,25 @@ async function login({ username, email, password, role }) {
     const isMatch = await passwordMatches(cleanPassword, user);
     if (!isMatch) {
         throw createHttpError("Invalid password", 400);
+    }
+
+    if (requestedRole === "customer") {
+        const customers = await db.executeQuery(
+            "SELECT status FROM customers WHERE email = ? LIMIT 1",
+            [identifier]
+        );
+
+        if (customers.length === 0) {
+            throw createHttpError("Customer profile not found. Please contact admin.", 403);
+        }
+
+        const status = customers[0].status || "active";
+        if (status === "pending") {
+            throw createHttpError("Your registration is waiting for admin approval.", 403);
+        }
+        if (status === "suspended") {
+            throw createHttpError("Your account is suspended. Please contact support.", 403);
+        }
     }
 
     const safeUser = {

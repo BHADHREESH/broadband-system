@@ -3,7 +3,7 @@ const { sendSuccess } = require("../utils/apiResponse");
 
 exports.register = async (req, res) => {
     const result = await authService.registerCustomer(req.body);
-    return sendSuccess(res, "User registered successfully", result, 201);
+    return sendSuccess(res, "Registration submitted. Please wait for admin approval.", result, 201);
 };
 
 exports.login = async (req, res) => {

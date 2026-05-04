@@ -1,6 +1,8 @@
 const db = require("../config/db");
 
 const statements = [
+    `ALTER TABLE customers
+        MODIFY status ENUM('pending','active','suspended') DEFAULT 'active'`,
     `CREATE TABLE IF NOT EXISTS payments (
         id INT AUTO_INCREMENT PRIMARY KEY,
         bill_id INT NOT NULL,
@@ -51,7 +53,14 @@ const statements = [
 
 async function ensureApplicationTables() {
     for (const statement of statements) {
-        await db.executeQuery(statement);
+        try {
+            await db.executeQuery(statement);
+        } catch (err) {
+            if (err.code === "ER_NO_SUCH_TABLE" && statement.startsWith("ALTER TABLE customers")) {
+                continue;
+            }
+            throw err;
+        }
     }
 }
 

@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS customers (
     phone VARCHAR(15),
     plan_id INT,
     address VARCHAR(255),
-    status ENUM('active','suspended') DEFAULT 'active',
+    status ENUM('pending','active','suspended') DEFAULT 'active',
     UNIQUE KEY uq_customers_email (email),
     INDEX idx_customers_plan_id (plan_id),
     INDEX idx_customers_status (status),

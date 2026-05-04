@@ -10,6 +10,8 @@ const {
     getMyCustomerProfile,
     updateMyCustomerProfile,
     updateCustomer,
+    approveCustomer,
+    rejectCustomer,
     deleteCustomer
 } = require("../controllers/customerController");
 
@@ -17,6 +19,8 @@ router.post("/", auth, auth.requireRole("admin", "staff"), requireIndianPhone("p
 router.get("/me", auth, auth.requireRole("customer"), asyncHandler(getMyCustomerProfile));
 router.put("/me", auth, auth.requireRole("customer"), optionalIndianPhone("phone"), asyncHandler(updateMyCustomerProfile));
 router.get("/", auth, auth.requireRole("admin", "staff"), asyncHandler(getCustomers));
+router.put("/:id/approve", auth, auth.requireRole("admin"), asyncHandler(approveCustomer));
+router.delete("/:id/reject", auth, auth.requireRole("admin"), asyncHandler(rejectCustomer));
 router.put("/:id", auth, auth.requireRole("admin", "staff"), optionalIndianPhone("phone"), asyncHandler(updateCustomer));
 router.delete("/:id", auth, auth.requireRole("admin"), asyncHandler(deleteCustomer));
 
