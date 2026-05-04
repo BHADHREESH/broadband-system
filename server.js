@@ -62,7 +62,23 @@ const isAllowedOrigin = (origin) => {
     return isLocalOrigin(origin);
 };
 
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": [
+                "'self'",
+                "'unsafe-inline'",
+                "https://cdn.jsdelivr.net",
+                "https://checkout.razorpay.com"
+            ],
+            "script-src-attr": ["'unsafe-inline'"],
+            "style-src": ["'self'", "'unsafe-inline'"],
+            "img-src": ["'self'", "data:", "https:"],
+            "connect-src": ["'self'", "https://api.razorpay.com"]
+        }
+    }
+}));
 app.use(cors({
     origin(origin, callback) {
         if (isAllowedOrigin(origin)) {
