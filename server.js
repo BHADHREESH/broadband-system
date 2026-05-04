@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const winston = require('winston');
 const env = require("./config/env");
-require("./config/db");
+const db = require("./config/db");
 const { ensureApplicationTables } = require("./services/schemaService");
 const { startReminderScheduler } = require("./services/reminderService");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -136,6 +136,28 @@ app.get("/api/health", (req, res) => {
             time: new Date().toISOString()
         }
     });
+});
+
+app.get("/api/health/db", async (req, res) => {
+    try {
+        const result = await db.executeQuery("SELECT COUNT(*) AS users FROM users");
+        res.json({
+            success: true,
+            message: "Database connected",
+            data: {
+                users: result[0].users
+            }
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: "Database check failed",
+            data: {
+                code: err.code || "UNKNOWN",
+                detail: err.message
+            }
+        });
+    }
 });
 
 app.get("/admin-dashboard", (req, res) => {
