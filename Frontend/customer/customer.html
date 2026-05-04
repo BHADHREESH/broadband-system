@@ -987,6 +987,10 @@ async function payNow(amount, billId = currentBillId) {
             return;
         }
 
+        if (String(order.key_id || "").startsWith("rzp_test_")) {
+            notify("Test mode UPI QR cannot be scanned. Use success@razorpay or live keys for QR.");
+        }
+
         const options = {
             key: order.key_id,
             amount: order.amount,
@@ -998,15 +1002,6 @@ async function payNow(amount, billId = currentBillId) {
                 name: currentProfile && currentProfile.name ? currentProfile.name : "",
                 email: currentProfile && currentProfile.email ? currentProfile.email : "",
                 contact: currentProfile && currentProfile.phone ? currentProfile.phone : ""
-            },
-            config: {
-                display: {
-                    hide: [
-                        {
-                            method: "upi"
-                        }
-                    ]
-                }
             },
 
             handler: async function (response) {
