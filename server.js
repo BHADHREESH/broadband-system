@@ -92,7 +92,13 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use("/api", apiLimiter);
-app.use(express.static(path.join(__dirname, env.frontendDir)));
+app.use(express.static(path.join(__dirname, env.frontendDir), {
+    setHeaders(res, filePath) {
+        if (filePath.endsWith(".html")) {
+            res.setHeader("Cache-Control", "no-store");
+        }
+    }
+}));
 
 const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
