@@ -1,4 +1,6 @@
 const db = require("../config/db");
+const fs = require("fs");
+const path = require("path");
 const PDFDocument = require("pdfkit");
 const { notifyBillDue, notifyBillPaid } = require("../services/notificationService");
 const { sendSuccess } = require("../utils/apiResponse");
@@ -122,15 +124,49 @@ exports.sendReminders = async (req, res) => {
     return sendSuccess(res, "Bill reminders processed", { count });
 };
 
+exports.sendBillNotification = async (req, res) => {
+    const { id } = req.params;
+    const requestedType = String(req.body && req.body.notification_type || "").toLowerCase();
+
+    const rows = await db.executeQuery(
+        `SELECT bills.id, bills.customer_id, bills.amount, bills.status, bills.due_date,
+                customers.name, customers.email, customers.phone
+         FROM bills
+         JOIN customers ON bills.customer_id = customers.id
+         WHERE bills.id = ?
+         LIMIT 1`,
+        [id]
+    );
+
+    if (rows.length === 0) {
+        throw httpError("Bill not found", 404);
+    }
+
+    const bill = rows[0];
+    const notificationType = requestedType || (String(bill.status).toLowerCase() === "paid" ? "paid" : "due");
+
+    if (notificationType === "paid") {
+        notifyBillPaid(bill, bill);
+    } else if (notificationType === "due") {
+        notifyBillDue(bill, bill);
+    } else {
+        throw httpError("Notification type must be due or paid", 400);
+    }
+
+    return sendSuccess(res, "Notification queued", { notification_type: notificationType });
+};
+
 const streamBillPdf = async (id, res) => {
     const results = await db.executeQuery(
-        `SELECT bills.*, customers.name, customers.email,
+        `SELECT bills.*, customers.name, customers.email, customers.phone, customers.address,
+                plans.name AS plan_name, plans.speed AS plan_speed,
                 payments.provider_payment_id,
                 payments.receipt_number,
                 payments.method,
                 payments.paid_at
          FROM bills
          JOIN customers ON bills.customer_id = customers.id
+         LEFT JOIN plans ON customers.plan_id = plans.id
          LEFT JOIN payments ON payments.bill_id = bills.id
          WHERE bills.id = ?
          ORDER BY payments.id DESC
@@ -147,53 +183,115 @@ const streamBillPdf = async (id, res) => {
         throw httpError("Bill can be downloaded only after payment", 403);
     }
 
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 42, size: "A4" });
 
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "attachment; filename=invoice.pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=netwave-bill-${bill.id}.pdf`);
 
     doc.pipe(res);
 
-    doc.fontSize(20).fillColor("#333").text("NETWAVE BROADBAND", 50, 50);
-    doc.fontSize(10).fillColor("gray")
-        .text("Karur, Tamil Nadu", 50, 70)
-        .text("Email: support@netwave.com", 50, 85);
+    const page = {
+        left: 42,
+        right: 553,
+        width: 511
+    };
+    const brandBlue = "#0B5ED7";
+    const deepBlue = "#083B8A";
+    const cyan = "#16C7D9";
+    const border = "#D7E0EA";
+    const muted = "#65758B";
+    const dark = "#172033";
+    const light = "#F4F8FC";
+    const success = "#138A36";
+    const logoPath = path.join(__dirname, "..", "Frontend", "logo.png");
+    const formatDate = (value) => value
+        ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+        : "--";
+    const formatDateTime = (value) => value
+        ? new Date(value).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+        : "--";
+    const money = (value) => `Rs. ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const drawLabelValue = (label, value, x, y, width = 230) => {
+        doc.fontSize(8).fillColor(muted).text(label.toUpperCase(), x, y, { width });
+        doc.fontSize(10).fillColor(dark).text(value || "--", x, y + 13, { width });
+    };
 
-    doc.fontSize(18).fillColor("black").text("INVOICE", 400, 50);
-    doc.moveTo(50, 110).lineTo(550, 110).stroke();
+    doc.rect(0, 0, 595.28, 112).fill(deepBlue);
+    doc.rect(0, 104, 595.28, 8).fill(cyan);
 
-    doc.fontSize(12).fillColor("black")
-        .text(`Customer Name: ${bill.name}`, 50, 130)
-        .text(`Email: ${bill.email}`, 50, 150)
-        .text(`Invoice ID: ${bill.id}`, 400, 130)
-        .text(`Date: ${bill.bill_date}`, 400, 150);
-
-    const tableTop = 200;
-
-    doc.fontSize(12)
-        .text("Description", 50, tableTop)
-        .text("Amount", 400, tableTop);
-    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-
-    doc.fontSize(11)
-        .text("Broadband Plan Charges", 50, tableTop + 25)
-        .text(`Rs. ${bill.amount}`, 400, tableTop + 25);
-
-    doc.fontSize(12)
-        .text("Total:", 350, tableTop + 80)
-        .text(`Rs. ${bill.amount}`, 400, tableTop + 80);
-
-    doc.fillColor(bill.status === "paid" ? "green" : "red")
-        .text(`Status: ${String(bill.status).toUpperCase()}`, 50, tableTop + 120);
-
-    doc.fillColor("black").text(`Due Date: ${bill.due_date}`, 50, tableTop + 140);
-    if (bill.paid_at) {
-        doc.text(`Paid At: ${bill.paid_at}`, 50, tableTop + 160);
-        doc.text(`Receipt: ${bill.receipt_number || "--"}`, 50, tableTop + 180);
-        doc.text(`Transaction: ${bill.provider_payment_id || bill.method || "--"}`, 50, tableTop + 200);
+    if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, page.left, 20, { width: 58, height: 58, fit: [58, 58] });
     }
-    doc.fontSize(10).fillColor("gray")
-        .text("This is a system-generated invoice. No signature required.", { align: "center" });
+
+    doc.fontSize(20).fillColor("#FFFFFF").font("Helvetica-Bold").text("NetWave Broadband", 112, 28);
+    doc.fontSize(9).fillColor("#DCEBFF").font("Helvetica")
+        .text("Connecting You. Powering Possibilities.", 112, 53)
+        .text("Karur, Tamil Nadu | support@netwave.com", 112, 70);
+
+    doc.roundedRect(414, 26, 139, 54, 6).fill("#FFFFFF");
+    doc.fontSize(8).fillColor(muted).text("COMPANY BILL", 428, 38, { width: 112, align: "center" });
+    doc.fontSize(16).fillColor(deepBlue).font("Helvetica-Bold")
+        .text(`INV-${String(bill.id).padStart(5, "0")}`, 428, 52, { width: 112, align: "center" });
+
+    doc.font("Helvetica");
+    doc.fontSize(9).fillColor(muted).text("BILL TO", page.left, 137);
+    doc.fontSize(16).fillColor(dark).font("Helvetica-Bold").text(bill.name || "Customer", page.left, 153, { width: 250 });
+    doc.font("Helvetica").fontSize(10).fillColor(dark)
+        .text(bill.email || "--", page.left, 178, { width: 250 })
+        .text(bill.phone || "--", page.left, 194, { width: 250 });
+    if (bill.address) {
+        doc.text(bill.address, page.left, 210, { width: 250 });
+    }
+
+    doc.roundedRect(338, 134, 215, 96, 8).fill(light).stroke(border);
+    drawLabelValue("Bill Date", formatDate(bill.bill_date), 356, 151, 82);
+    drawLabelValue("Due Date", formatDate(bill.due_date), 454, 151, 82);
+    drawLabelValue("Status", String(bill.status || "paid").toUpperCase(), 356, 193, 82);
+    drawLabelValue("Customer ID", `#${bill.customer_id || "--"}`, 454, 193, 82);
+
+    const tableTop = 275;
+    doc.roundedRect(page.left, tableTop, page.width, 34, 6).fill(deepBlue);
+    doc.fontSize(9).fillColor("#FFFFFF").font("Helvetica-Bold")
+        .text("Description", page.left + 16, tableTop + 12, { width: 230 })
+        .text("Plan", 308, tableTop + 12, { width: 90 })
+        .text("Amount", 444, tableTop + 12, { width: 82, align: "right" });
+
+    const rowTop = tableTop + 34;
+    doc.rect(page.left, rowTop, page.width, 62).fill("#FFFFFF").stroke(border);
+    doc.font("Helvetica").fontSize(10).fillColor(dark)
+        .text("Broadband subscription charges", page.left + 16, rowTop + 18, { width: 230 })
+        .text(bill.plan_name || "NetWave Broadband", 308, rowTop + 14, { width: 90 })
+        .fontSize(8).fillColor(muted)
+        .text(bill.plan_speed || "", 308, rowTop + 30, { width: 90 });
+    doc.fontSize(10).fillColor(dark).text(money(bill.amount), 444, rowTop + 18, { width: 82, align: "right" });
+
+    const totalTop = rowTop + 84;
+    doc.roundedRect(340, totalTop, 213, 78, 8).fill(light).stroke(border);
+    doc.font("Helvetica").fontSize(10).fillColor(muted)
+        .text("Subtotal", 358, totalTop + 17, { width: 90 })
+        .text(money(bill.amount), 444, totalTop + 17, { width: 82, align: "right" });
+    doc.moveTo(358, totalTop + 43).lineTo(535, totalTop + 43).strokeColor(border).stroke();
+    doc.font("Helvetica-Bold").fontSize(13).fillColor(deepBlue)
+        .text("Total Paid", 358, totalTop + 53, { width: 90 })
+        .text(money(bill.amount), 444, totalTop + 53, { width: 82, align: "right" });
+
+    doc.roundedRect(page.left, totalTop, 245, 78, 8).fill("#FFFFFF").stroke(border);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor(dark).text("Payment Details", page.left + 16, totalTop + 14);
+    doc.font("Helvetica").fontSize(9).fillColor(muted)
+        .text(`Paid At: ${formatDateTime(bill.paid_at)}`, page.left + 16, totalTop + 34, { width: 210 })
+        .text(`Receipt: ${bill.receipt_number || "--"}`, page.left + 16, totalTop + 49, { width: 210 })
+        .text(`Transaction: ${bill.provider_payment_id || bill.method || "--"}`, page.left + 16, totalTop + 64, { width: 210 });
+
+    doc.roundedRect(page.left, 500, page.width, 64, 8).fill("#F9FBFD").stroke(border);
+    doc.font("Helvetica-Bold").fontSize(10).fillColor(dark).text("Notes", page.left + 16, 515);
+    doc.font("Helvetica").fontSize(9).fillColor(muted)
+        .text("Thank you for choosing NetWave Broadband. Please keep this bill for your records.", page.left + 16, 533, { width: 470 })
+        .text("For billing corrections or payment queries, contact NetWave support with your bill ID.", page.left + 16, 548, { width: 470 });
+
+    doc.moveTo(page.left, 716).lineTo(page.right, 716).strokeColor(border).stroke();
+    doc.fontSize(8).fillColor(muted)
+        .text("This is a system-generated company bill and does not require a signature.", page.left, 728, { width: page.width, align: "center" })
+        .text("(c) 2026 NetWave Broadband. All rights reserved.", page.left, 742, { width: page.width, align: "center" });
 
     doc.end();
 };

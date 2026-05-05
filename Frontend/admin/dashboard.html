@@ -658,6 +658,15 @@ tr:hover {
 
     <div class="table-box">
         <table>
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Due Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
             <tbody id="billTable"></tbody>
         </table>
     </div>
@@ -1148,17 +1157,23 @@ async function loadBills() {
 
         billTable.innerHTML="";
         billsData.forEach(b=>{
+            const isPaid = String(b.status || "").toLowerCase() === "paid";
             billTable.innerHTML+=`
             <tr>
                 <td>${b.customer_name}</td>
                 <td>${money(b.amount)}</td>
                 <td><span class="badge ${b.status=='paid'?'paid':'unpaid'}">${b.status}</span></td>
+                <td>${b.due_date ? new Date(b.due_date).toLocaleDateString("en-IN") : "--"}</td>
+                <td>
+                    <button class="btn" onclick="sendBillNotification(${b.id}, '${isPaid ? "paid" : "due"}')">Notify</button>
+                    ${isPaid ? `<button class="btn secondary" onclick="downloadBill(${b.id})">Download</button>` : ""}
+                </td>
             </tr>`;
         });
-        if (billsData.length === 0) showTableMessage(billTable, "No bills found", 3);
+        if (billsData.length === 0) showTableMessage(billTable, "No bills found", 5);
     } catch (err) {
         billsData = [];
-        showTableMessage(billTable, err.message, 3);
+        showTableMessage(billTable, err.message, 5);
     }
     renderDashboard();
 }
@@ -1481,6 +1496,51 @@ async function sendReminders() {
         }));
         notify(`${data.count || 0} reminders processed`, "success");
         loadNotifications();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function sendBillNotification(id, notification_type) {
+    const label = notification_type === "paid" ? "payment successful" : "payment reminder";
+    if (!await askConfirm(`Send ${label} notification for bill #${id}?`)) return;
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/bills/${id}/notifications/send`), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({ notification_type })
+        }));
+        notify("Notification queued", "success");
+        loadNotifications();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
+async function downloadBill(id) {
+    try {
+        const res = await fetch(apiUrl(`/api/bills/download/${id}`), {
+            headers: { Authorization: "Bearer " + token }
+        });
+
+        if (!res.ok) {
+            const payload = await res.json().catch(() => ({}));
+            throw new Error(payload.message || "Unable to download bill");
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `netwave-bill-${id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
     } catch (err) {
         notify(err.message);
     }
