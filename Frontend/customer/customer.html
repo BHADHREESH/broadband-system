@@ -36,6 +36,28 @@ body {
     font-size: 26px;
 }
 
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-lockup img {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: white;
+    object-fit: cover;
+}
+
+.brand-lockup span {
+    display: block;
+    margin-top: 2px;
+    color: #b8c8ee;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .navbar span {
     margin-right: 14px;
     color: #d9e5ff;
@@ -460,7 +482,13 @@ input {
 <body>
 
 <div class="navbar">
-    <h2>NetWave</h2>
+    <div class="brand-lockup">
+        <img src="../logo.png" alt="NetWave Broadband">
+        <div>
+            <h2>NetWave</h2>
+            <span>Customer portal</span>
+        </div>
+    </div>
     <div>
         <span id="username"></span>
         <button class="btn" onclick="logout()">Logout</button>

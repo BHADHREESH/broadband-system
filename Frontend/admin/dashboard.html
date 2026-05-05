@@ -38,6 +38,33 @@ body {
     min-width: 170px;
 }
 
+.brand-lockup {
+    min-width: 190px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-lockup img {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: white;
+    object-fit: cover;
+}
+
+.brand-lockup h2 {
+    min-width: 0;
+}
+
+.brand-lockup span {
+    display: block;
+    margin-top: 2px;
+    color: #b8c8ee;
+    font-size: 12px;
+    font-weight: 600;
+}
+
 /* MENU */
 .menu {
     flex: 1;
@@ -503,7 +530,13 @@ tr:hover {
 
 <!-- NAVBAR -->
 <div class="navbar">
-    <h2>NetWave Admin</h2>
+    <div class="brand-lockup">
+        <img src="../logo.png" alt="NetWave Broadband">
+        <div>
+            <h2>NetWave</h2>
+            <span>Admin portal</span>
+        </div>
+    </div>
 
     <div class="menu">
         <a onclick="show('dashboard')">Dashboard</a>

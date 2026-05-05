@@ -40,6 +40,29 @@ body {
     margin-bottom: 34px;
 }
 
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 34px;
+}
+
+.brand-lockup img {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: white;
+    object-fit: cover;
+}
+
+.brand-lockup h2 {
+    margin: 0 0 3px;
+}
+
+.brand-lockup .tagline {
+    margin: 0;
+}
+
 .menu a {
     border: 0;
     background: transparent;
@@ -382,8 +405,13 @@ tr:hover td {
 
 <!-- SIDEBAR -->
 <div class="sidebar">
-    <h2>NetWave</h2>
-    <div class="tagline">Staff operations</div>
+    <div class="brand-lockup">
+        <img src="../logo.png" alt="NetWave Broadband">
+        <div>
+            <h2>NetWave</h2>
+            <div class="tagline">Staff operations</div>
+        </div>
+    </div>
 
     <div class="menu">
         <a class="active-link" onclick="showSection('dashboard', this)">Dashboard</a>
