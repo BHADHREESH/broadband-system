@@ -10,8 +10,10 @@ const { ensureApplicationTables } = require("./services/schemaService");
 const { startReminderScheduler } = require("./services/reminderService");
 const {
     sendSms,
-    getTwilioDiagnostics,
+    sendMsg91Sms,
+    getSmsDiagnostics,
     logTwilioDiagnostics,
+    logMsg91Diagnostics,
     formatTwilioPhone,
     isE164Phone
 } = require("./services/smsService");
@@ -166,6 +168,7 @@ app.get("/api/health", (req, res) => {
                 ),
                 sms: Boolean(
                     process.env.SMS_API_URL
+                    || (process.env.MSG91_AUTHKEY && process.env.MSG91_FLOW_ID)
                     || (
                         process.env.TWILIO_ACCOUNT_SID
                         && process.env.TWILIO_AUTH_TOKEN
@@ -201,11 +204,11 @@ app.get("/api/health/db", async (req, res) => {
 
 app.get("/test-sms", async (req, res) => {
     const to = formatTwilioPhone(req.query.to || process.env.TEST_SMS_TO);
-    const diagnostics = getTwilioDiagnostics();
+    const diagnostics = getSmsDiagnostics();
 
     console.log("/test-sms requested:", {
         to,
-        twilio: diagnostics
+        sms: diagnostics
     });
 
     if (!to) {
@@ -213,7 +216,7 @@ app.get("/test-sms", async (req, res) => {
             success: false,
             message: "Missing SMS destination. Use /test-sms?to=+91XXXXXXXXXX or set TEST_SMS_TO.",
             data: {
-                twilio: diagnostics
+                sms: diagnostics
             }
         });
     }
@@ -224,7 +227,7 @@ app.get("/test-sms", async (req, res) => {
             message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
             data: {
                 to,
-                twilio: diagnostics
+                sms: diagnostics
             }
         });
     }
@@ -237,7 +240,7 @@ app.get("/test-sms", async (req, res) => {
             message: result && result.skipped ? "SMS skipped" : "SMS request sent",
             data: {
                 result,
-                twilio: diagnostics
+                sms: diagnostics
             }
         });
     } catch (err) {
@@ -248,11 +251,77 @@ app.get("/test-sms", async (req, res) => {
             success: false,
             message: err.message || "Test SMS failed",
             data: {
-                twilio: diagnostics,
-                twilioError: {
+                sms: diagnostics,
+                smsError: {
                     status: err.status,
                     statusText: err.statusText,
                     request: err.request,
+                    response: err.response
+                }
+            }
+        });
+    }
+});
+
+app.get("/test-msg91", async (req, res) => {
+    const to = formatTwilioPhone(req.query.to || process.env.TEST_SMS_TO);
+    const diagnostics = getSmsDiagnostics();
+
+    console.log("/test-msg91 requested:", {
+        to,
+        sms: diagnostics
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing SMS destination. Use /test-msg91?to=+91XXXXXXXXXX or set TEST_SMS_TO.",
+            data: {
+                sms: diagnostics
+            }
+        });
+    }
+
+    if (!isE164Phone(to)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
+            data: {
+                to,
+                sms: diagnostics
+            }
+        });
+    }
+
+    try {
+        const result = await sendMsg91Sms(to, "NetWave test SMS from Render.", {
+            name: "Customer",
+            customer_name: "Customer",
+            amount: "0",
+            due_date: new Date().toLocaleDateString("en-IN"),
+            bill_id: "TEST"
+        });
+
+        return res.json({
+            success: true,
+            message: result && result.skipped ? "MSG91 SMS skipped" : "MSG91 SMS request sent",
+            data: {
+                result,
+                sms: diagnostics
+            }
+        });
+    } catch (err) {
+        console.error("Test MSG91 SMS failed:", err.message);
+        console.error(err);
+
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err.message || "Test MSG91 SMS failed",
+            data: {
+                sms: diagnostics,
+                msg91Error: {
+                    status: err.status,
+                    statusText: err.statusText,
                     response: err.response
                 }
             }
@@ -344,6 +413,7 @@ app.use(errorHandler);
 app.listen(env.port, () => {
     logger.info(`Server running on port ${env.port}`);
     logEmailDiagnostics();
+    logMsg91Diagnostics();
     logTwilioDiagnostics();
     console.log("Node.js version:", process.version);
     console.log("CommonJS runtime:", true);
