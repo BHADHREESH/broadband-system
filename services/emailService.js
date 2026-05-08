@@ -11,6 +11,26 @@ const {
 
 const isConfigured = () => Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS);
 
+const getEmailDiagnostics = () => ({
+    smtpHost: SMTP_HOST || "",
+    smtpPort: SMTP_PORT || "",
+    smtpUser: SMTP_USER || "",
+    smtpFrom: SMTP_FROM || "",
+    smtpPassPresent: Boolean(SMTP_PASS),
+    configured: isConfigured(),
+    secure: Number(SMTP_PORT) === 465,
+    nodeVersion: process.version
+});
+
+const logEmailDiagnostics = () => {
+    console.log("SMTP_HOST:", process.env.SMTP_HOST);
+    console.log("SMTP_PORT:", process.env.SMTP_PORT);
+    console.log("SMTP_USER:", process.env.SMTP_USER);
+    console.log("SMTP_FROM:", process.env.SMTP_FROM);
+    console.log("SMTP_PASS present:", Boolean(process.env.SMTP_PASS));
+    console.log("Email runtime diagnostics:", getEmailDiagnostics());
+};
+
 const formatDate = (date) => {
     if (!date) return "--";
 
@@ -41,13 +61,28 @@ const sendEmail = async ({ to, subject, text, html }) => {
         return { skipped: true, reason: "Customer email missing" };
     }
 
-    return getTransporter().sendMail({
-        from: SMTP_FROM || SMTP_USER,
-        to,
-        subject,
-        text,
-        html
-    });
+    try {
+        const result = await getTransporter().sendMail({
+            from: SMTP_FROM || SMTP_USER,
+            to,
+            subject,
+            text,
+            html
+        });
+
+        console.log("Email sent:", {
+            accepted: result.accepted,
+            rejected: result.rejected,
+            response: result.response,
+            messageId: result.messageId
+        });
+
+        return result;
+    } catch (err) {
+        console.error("Email send failed:", err.message);
+        console.error(err);
+        throw err;
+    }
 };
 
 const sendDueDateEmail = (customer, bill) => {
@@ -89,31 +124,10 @@ const sendPaidEmail = (customer, bill) => {
     });
 };
 
-const sendCustomerApprovedEmail = (customer) => sendEmail({
-    to: customer.email,
-    subject: "NetWave account approved",
-    text: `Hi ${customer.name || "Customer"}, your NetWave broadband account is approved. You can now log in and use your customer dashboard.`,
-    html: `
-        <p>Hi ${customer.name || "Customer"},</p>
-        <p>Your NetWave broadband account is approved.</p>
-        <p>You can now log in and use your customer dashboard.</p>
-    `
-});
-
-const sendCustomerRejectedEmail = (customer) => sendEmail({
-    to: customer.email,
-    subject: "NetWave registration update",
-    text: `Hi ${customer.name || "Customer"}, your NetWave broadband registration could not be approved. Please contact support for help.`,
-    html: `
-        <p>Hi ${customer.name || "Customer"},</p>
-        <p>Your NetWave broadband registration could not be approved.</p>
-        <p>Please contact support for help.</p>
-    `
-});
-
 module.exports = {
+    sendEmail,
     sendDueDateEmail,
     sendPaidEmail,
-    sendCustomerApprovedEmail,
-    sendCustomerRejectedEmail
+    getEmailDiagnostics,
+    logEmailDiagnostics
 };
