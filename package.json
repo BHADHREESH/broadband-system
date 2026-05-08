@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node --check server.js && node --check config/env.js && node --check config/db.js && node --check middleware/auth.js && node --check middleware/errorHandler.js && node --check middleware/asyncHandler.js && node --check middleware/validate.js && node --check middleware/rateLimiters.js && node --check models/userModel.js && node --check services/authService.js && node --check controllers/authController.js && node --check controllers/plansController.js && node --check controllers/dashboardController.js && node --check controllers/billingController.js && node --check controllers/paymentController.js && node --check controllers/supportController.js && node --check controllers/staffController.js && node --check controllers/paymentsController.js && node --check controllers/usageController.js && node --check controllers/aiController.js && node --check routes/usageRoutes.js && node --check services/whatsappService.js && node --check services/smsService.js && node --check services/emailService.js && node --check services/notificationService.js && node --check services/schemaService.js && node --check services/reminderService.js && node --check utils/billDownloadToken.js"
