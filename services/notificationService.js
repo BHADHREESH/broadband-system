@@ -5,6 +5,7 @@ const db = require("../config/db");
 
 const logFailure = (channel, err) => {
     console.error(`${channel} notification failed:`, err.message);
+    console.error(err);
 };
 
 const recordNotification = async (customer, bill, channel, type, status, message) => {
@@ -30,6 +31,9 @@ const sendAndLog = (promise, customer, bill, channel, type) => {
     promise
         .then((result) => {
             const status = result && result.skipped ? "skipped" : "sent";
+            if (status === "skipped") {
+                console.log(`${channel} ${type} notification skipped:`, result && result.reason);
+            }
             return recordNotification(customer, bill, channel, type, status, result && result.reason);
         })
         .catch((err) => {
