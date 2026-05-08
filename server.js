@@ -8,6 +8,18 @@ const env = require("./config/env");
 const db = require("./config/db");
 const { ensureApplicationTables } = require("./services/schemaService");
 const { startReminderScheduler } = require("./services/reminderService");
+const {
+    sendSms,
+    getTwilioDiagnostics,
+    logTwilioDiagnostics,
+    formatTwilioPhone,
+    isE164Phone
+} = require("./services/smsService");
+const {
+    sendEmail,
+    getEmailDiagnostics,
+    logEmailDiagnostics
+} = require("./services/emailService");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { apiLimiter, paymentLimiter } = require("./middleware/rateLimiters");
 
@@ -141,7 +153,26 @@ app.get("/api/health", (req, res) => {
         message: "NetWave API healthy",
         data: {
             environment: env.nodeEnv,
-            time: new Date().toISOString()
+            time: new Date().toISOString(),
+            notifications: {
+                email: Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS),
+                whatsapp: Boolean(
+                    (process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN)
+                    || (
+                        process.env.TWILIO_ACCOUNT_SID
+                        && process.env.TWILIO_AUTH_TOKEN
+                        && process.env.TWILIO_WHATSAPP_FROM
+                    )
+                ),
+                sms: Boolean(
+                    process.env.SMS_API_URL
+                    || (
+                        process.env.TWILIO_ACCOUNT_SID
+                        && process.env.TWILIO_AUTH_TOKEN
+                        && (process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID)
+                    )
+                )
+            }
         }
     });
 });
@@ -168,6 +199,129 @@ app.get("/api/health/db", async (req, res) => {
     }
 });
 
+app.get("/test-sms", async (req, res) => {
+    const to = formatTwilioPhone(req.query.to || process.env.TEST_SMS_TO);
+    const diagnostics = getTwilioDiagnostics();
+
+    console.log("/test-sms requested:", {
+        to,
+        twilio: diagnostics
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing SMS destination. Use /test-sms?to=+91XXXXXXXXXX or set TEST_SMS_TO.",
+            data: {
+                twilio: diagnostics
+            }
+        });
+    }
+
+    if (!isE164Phone(to)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
+            data: {
+                to,
+                twilio: diagnostics
+            }
+        });
+    }
+
+    try {
+        const result = await sendSms(to, "NetWave test SMS from Render.");
+
+        return res.json({
+            success: true,
+            message: result && result.skipped ? "SMS skipped" : "SMS request sent",
+            data: {
+                result,
+                twilio: diagnostics
+            }
+        });
+    } catch (err) {
+        console.error("Test SMS failed:", err.message);
+        console.error(err);
+
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err.message || "Test SMS failed",
+            data: {
+                twilio: diagnostics,
+                twilioError: {
+                    status: err.status,
+                    statusText: err.statusText,
+                    request: err.request,
+                    response: err.response
+                }
+            }
+        });
+    }
+});
+
+app.get("/test-email", async (req, res) => {
+    const to = String(req.query.to || process.env.TEST_EMAIL_TO || "").trim();
+    const diagnostics = getEmailDiagnostics();
+
+    console.log("/test-email requested:", {
+        to,
+        email: diagnostics
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing email destination. Use /test-email?to=name@example.com or set TEST_EMAIL_TO.",
+            data: {
+                email: diagnostics
+            }
+        });
+    }
+
+    try {
+        const result = await sendEmail({
+            to,
+            subject: "NetWave test email",
+            text: "NetWave test email from Render.",
+            html: "<p>NetWave test email from Render.</p>"
+        });
+
+        return res.json({
+            success: true,
+            message: result && result.skipped ? "Email skipped" : "Email request sent",
+            data: {
+                result: {
+                    accepted: result.accepted,
+                    rejected: result.rejected,
+                    response: result.response,
+                    messageId: result.messageId,
+                    skipped: result.skipped,
+                    reason: result.reason
+                },
+                email: diagnostics
+            }
+        });
+    } catch (err) {
+        console.error("Test email failed:", err.message);
+        console.error(err);
+
+        return res.status(500).json({
+            success: false,
+            message: err.message || "Test email failed",
+            data: {
+                email: diagnostics,
+                emailError: {
+                    code: err.code,
+                    command: err.command,
+                    response: err.response,
+                    responseCode: err.responseCode
+                }
+            }
+        });
+    }
+});
+
 app.get("/admin-dashboard", (req, res) => {
     res.sendFile(path.join(__dirname, env.frontendDir, "admin/dashboard.html"));
 });
@@ -189,6 +343,11 @@ app.use(errorHandler);
 
 app.listen(env.port, () => {
     logger.info(`Server running on port ${env.port}`);
+    logEmailDiagnostics();
+    logTwilioDiagnostics();
+    console.log("Node.js version:", process.version);
+    console.log("CommonJS runtime:", true);
+    console.log("dotenv loaded before SMS service:", Boolean(env.jwtSecret));
 });
 
 ensureApplicationTables()
