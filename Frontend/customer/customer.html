@@ -586,6 +586,7 @@ input {
         <table>
             <thead>
                 <tr>
+                    <th>Details</th>
                     <th>Amount</th>
                     <th>Status</th>
                     <th>Date</th>
@@ -874,7 +875,7 @@ async function loadBills() {
     table.innerHTML = "";
 
     if (!res.ok) {
-        table.innerHTML = `<tr><td colspan="4">${data.message || "Unable to load bills"}</td></tr>`;
+        table.innerHTML = `<tr><td colspan="5">${data.message || "Unable to load bills"}</td></tr>`;
         payButton.disabled = true;
         return;
     }
@@ -885,6 +886,7 @@ async function loadBills() {
 
         table.innerHTML += `
         <tr>
+            <td>${b.item_summary || "Broadband subscription charges"}</td>
             <td>Rs.${b.amount}</td>
             <td>${b.status}</td>
             <td>${formatDate(b.bill_date)}</td>
@@ -917,7 +919,7 @@ async function loadBills() {
         payButton.disabled = true;
 
         if (data.length === 0) {
-            table.innerHTML = `<tr><td colspan="4">No bills found</td></tr>`;
+            table.innerHTML = `<tr><td colspan="5">No bills found</td></tr>`;
         }
     }
 }

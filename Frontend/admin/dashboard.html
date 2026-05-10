@@ -687,6 +687,7 @@ tr:hover {
 <div id="billing" class="section">
     <h2>Billing</h2>
     <button class="btn" onclick="generateBill()">Generate Bill</button>
+    <button class="btn" onclick="addHardwareCharge()">Add Hardware Charge</button>
     <button class="btn" onclick="sendReminders()">Send Reminders</button>
 
     <div class="table-box">
@@ -694,6 +695,7 @@ tr:hover {
             <thead>
                 <tr>
                     <th>Customer</th>
+                    <th>Bill Details</th>
                     <th>Amount</th>
                     <th>Status</th>
                     <th>Due Date</th>
@@ -1193,20 +1195,22 @@ async function loadBills() {
             const isPaid = String(b.status || "").toLowerCase() === "paid";
             billTable.innerHTML+=`
             <tr>
-                <td>${b.customer_name}</td>
+                <td>#${b.id} ${b.customer_name}</td>
+                <td>${b.item_summary || "Broadband subscription charges"}</td>
                 <td>${money(b.amount)}</td>
                 <td><span class="badge ${b.status=='paid'?'paid':'unpaid'}">${b.status}</span></td>
                 <td>${b.due_date ? new Date(b.due_date).toLocaleDateString("en-IN") : "--"}</td>
                 <td>
+                    ${isPaid ? "" : `<button class="btn" onclick="addHardwareCharge(${b.id})">Add Charge</button>`}
                     <button class="btn" onclick="sendBillNotification(${b.id}, '${isPaid ? "paid" : "due"}')">Notify</button>
                     ${isPaid ? `<button class="btn secondary" onclick="downloadBill(${b.id})">Download</button>` : ""}
                 </td>
             </tr>`;
         });
-        if (billsData.length === 0) showTableMessage(billTable, "No bills found", 5);
+        if (billsData.length === 0) showTableMessage(billTable, "No bills found", 6);
     } catch (err) {
         billsData = [];
-        showTableMessage(billTable, err.message, 5);
+        showTableMessage(billTable, err.message, 6);
     }
     renderDashboard();
 }
@@ -1519,6 +1523,44 @@ async function generateBill() {
     }
 }
 
+async function addHardwareCharge(billId = null) {
+    const id = billId || await askText("Bill ID");
+    if (!id) return notify("Bill ID is required");
+
+    const bill = billsData.find(b => Number(b.id) === Number(id));
+    if (bill && String(bill.status || "").toLowerCase() === "paid") {
+        return notify("Cannot add charges to a paid bill");
+    }
+
+    const description = await askText("Hardware or service detail", "Router replacement");
+    if (!description) return notify("Hardware or service detail is required");
+
+    const amountValue = await askText("Charge amount");
+    const amount = Number(amountValue);
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return notify("Valid charge amount is required");
+    }
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/bills/${id}/items`), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+                description,
+                amount,
+                item_type: "hardware"
+            })
+        }));
+        notify("Hardware charge added to bill", "success");
+        await loadBills();
+    } catch (err) {
+        notify(err.message);
+    }
+}
+
 async function sendReminders() {
     if (!await askConfirm("Send due reminders for unpaid bills due within 3 days?")) return;
 
@@ -1539,7 +1581,7 @@ async function sendBillNotification(id, notification_type) {
     if (!await askConfirm(`Send ${label} notification for bill #${id}?`)) return;
 
     try {
-        await handleJson(await fetch(apiUrl(`/api/bills/${id}/notifications/send`), {
+        const data = await handleJson(await fetch(apiUrl(`/api/bills/${id}/notifications/send`), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -1547,7 +1589,14 @@ async function sendBillNotification(id, notification_type) {
             },
             body: JSON.stringify({ notification_type })
         }));
-        notify("Notification queued", "success");
+        const emailResult = Array.isArray(data.results)
+            ? data.results.find((result) => result.channel === "email")
+            : null;
+        if (emailResult && emailResult.status !== "sent") {
+            notify(`Email ${emailResult.status}: ${emailResult.message || "check backend logs"}`);
+        } else {
+            notify(emailResult ? "Email sent" : "Notification processed", "success");
+        }
         loadNotifications();
     } catch (err) {
         notify(err.message);

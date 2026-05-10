@@ -42,6 +42,11 @@ exports.generateBill = async (req, res) => {
         [customer_id, customer.price, billDate, dueDate]
     );
 
+    await db.executeQuery(
+        "INSERT INTO bill_items (bill_id, description, amount, item_type) VALUES (?, ?, ?, 'subscription')",
+        [result.insertId, "Broadband subscription charges", customer.price]
+    );
+
     notifyBillDue(customer, {
         id: result.insertId,
         amount: customer.price,
@@ -56,9 +61,19 @@ exports.getBills = async (req, res) => {
 
     if (user.role === "admin" || user.role === "staff") {
         const bills = await db.executeQuery(`
-            SELECT bills.*, customers.name AS customer_name
+            SELECT bills.*,
+                   customers.name AS customer_name,
+                   COALESCE(items.item_count, 0) AS item_count,
+                   items.item_summary
             FROM bills
             JOIN customers ON bills.customer_id = customers.id
+            LEFT JOIN (
+                SELECT bill_id,
+                       COUNT(*) AS item_count,
+                       GROUP_CONCAT(description ORDER BY id SEPARATOR ', ') AS item_summary
+                FROM bill_items
+                GROUP BY bill_id
+            ) items ON items.bill_id = bills.id
             ORDER BY bills.id DESC
         `);
 
@@ -77,9 +92,19 @@ exports.getBills = async (req, res) => {
     }
 
     const bills = await db.executeQuery(
-        `SELECT bills.*, customers.name AS customer_name
+        `SELECT bills.*,
+                customers.name AS customer_name,
+                COALESCE(items.item_count, 0) AS item_count,
+                items.item_summary
          FROM bills
          JOIN customers ON bills.customer_id = customers.id
+         LEFT JOIN (
+            SELECT bill_id,
+                   COUNT(*) AS item_count,
+                   GROUP_CONCAT(description ORDER BY id SEPARATOR ', ') AS item_summary
+            FROM bill_items
+            GROUP BY bill_id
+         ) items ON items.bill_id = bills.id
          WHERE customers.email = ?
          ORDER BY bills.id DESC`,
         [email]
@@ -124,6 +149,49 @@ exports.sendReminders = async (req, res) => {
     return sendSuccess(res, "Bill reminders processed", { count });
 };
 
+exports.addBillItem = async (req, res) => {
+    const { id } = req.params;
+    const description = String(req.body && req.body.description || "").trim();
+    const amount = Number(req.body && req.body.amount);
+    const itemType = String(req.body && req.body.item_type || "hardware").trim().toLowerCase();
+
+    if (!description) {
+        throw httpError("Hardware or service description is required", 400);
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+        throw httpError("Valid charge amount is required", 400);
+    }
+
+    const rows = await db.executeQuery("SELECT id, amount, status FROM bills WHERE id = ? LIMIT 1", [id]);
+    if (rows.length === 0) {
+        throw httpError("Bill not found", 404);
+    }
+
+    const bill = rows[0];
+
+    if (String(bill.status || "").toLowerCase() === "paid") {
+        throw httpError("Cannot add charges to a paid bill", 400);
+    }
+
+    const existingItems = await db.executeQuery("SELECT COUNT(*) AS count FROM bill_items WHERE bill_id = ?", [id]);
+    if (Number(existingItems[0] && existingItems[0].count || 0) === 0) {
+        await db.executeQuery(
+            "INSERT INTO bill_items (bill_id, description, amount, item_type) VALUES (?, ?, ?, 'subscription')",
+            [id, "Broadband subscription charges", bill.amount]
+        );
+    }
+
+    await db.executeQuery(
+        "INSERT INTO bill_items (bill_id, description, amount, item_type) VALUES (?, ?, ?, ?)",
+        [id, description, amount, itemType || "hardware"]
+    );
+
+    await db.executeQuery("UPDATE bills SET amount = amount + ? WHERE id = ?", [amount, id]);
+
+    return sendSuccess(res, "Charge added to bill", { bill_id: Number(id), description, amount });
+};
+
 exports.sendBillNotification = async (req, res) => {
     const { id } = req.params;
     const requestedType = String(req.body && req.body.notification_type || "").toLowerCase();
@@ -145,15 +213,17 @@ exports.sendBillNotification = async (req, res) => {
     const bill = rows[0];
     const notificationType = requestedType || (String(bill.status).toLowerCase() === "paid" ? "paid" : "due");
 
+    let results;
+
     if (notificationType === "paid") {
-        notifyBillPaid(bill, bill);
+        results = await notifyBillPaid(bill, bill);
     } else if (notificationType === "due") {
-        notifyBillDue(bill, bill);
+        results = await notifyBillDue(bill, bill);
     } else {
         throw httpError("Notification type must be due or paid", 400);
     }
 
-    return sendSuccess(res, "Notification queued", { notification_type: notificationType });
+    return sendSuccess(res, "Notification processed", { notification_type: notificationType, results });
 };
 
 const streamBillPdf = async (id, res) => {
@@ -179,6 +249,14 @@ const streamBillPdf = async (id, res) => {
     }
 
     const bill = results[0];
+    const lineItems = await db.executeQuery(
+        "SELECT description, amount, item_type FROM bill_items WHERE bill_id = ? ORDER BY id ASC",
+        [id]
+    );
+    const billItems = lineItems.length > 0
+        ? lineItems
+        : [{ description: "Broadband subscription charges", amount: bill.amount, item_type: "subscription" }];
+
     if (String(bill.status || "").toLowerCase() !== "paid") {
         throw httpError("Bill can be downloaded only after payment", 403);
     }
@@ -256,16 +334,20 @@ const streamBillPdf = async (id, res) => {
         .text("Plan", 308, tableTop + 12, { width: 90 })
         .text("Amount", 444, tableTop + 12, { width: 82, align: "right" });
 
-    const rowTop = tableTop + 34;
-    doc.rect(page.left, rowTop, page.width, 62).fill("#FFFFFF").stroke(border);
-    doc.font("Helvetica").fontSize(10).fillColor(dark)
-        .text("Broadband subscription charges", page.left + 16, rowTop + 18, { width: 230 })
-        .text(bill.plan_name || "NetWave Broadband", 308, rowTop + 14, { width: 90 })
-        .fontSize(8).fillColor(muted)
-        .text(bill.plan_speed || "", 308, rowTop + 30, { width: 90 });
-    doc.fontSize(10).fillColor(dark).text(money(bill.amount), 444, rowTop + 18, { width: 82, align: "right" });
+    let rowTop = tableTop + 34;
+    billItems.forEach((item) => {
+        const rowHeight = 46;
+        doc.rect(page.left, rowTop, page.width, rowHeight).fill("#FFFFFF").stroke(border);
+        doc.font("Helvetica").fontSize(10).fillColor(dark)
+            .text(item.description || "Bill charge", page.left + 16, rowTop + 14, { width: 230 });
+        doc.fontSize(9).fillColor(muted)
+            .text(item.item_type === "subscription" ? (bill.plan_name || "NetWave Broadband") : "Hardware / service", 308, rowTop + 11, { width: 100 })
+            .text(item.item_type === "subscription" ? (bill.plan_speed || "") : "", 308, rowTop + 27, { width: 100 });
+        doc.fontSize(10).fillColor(dark).text(money(item.amount), 444, rowTop + 14, { width: 82, align: "right" });
+        rowTop += rowHeight;
+    });
 
-    const totalTop = rowTop + 84;
+    const totalTop = rowTop + 22;
     doc.roundedRect(340, totalTop, 213, 78, 8).fill(light).stroke(border);
     doc.font("Helvetica").fontSize(10).fillColor(muted)
         .text("Subtotal", 358, totalTop + 17, { width: 90 })

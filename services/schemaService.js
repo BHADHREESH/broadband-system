@@ -25,6 +25,18 @@ const statements = [
             ON UPDATE CASCADE
             ON DELETE CASCADE
     )`,
+    `CREATE TABLE IF NOT EXISTS bill_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        bill_id INT NOT NULL,
+        description VARCHAR(160) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        item_type VARCHAR(40) NOT NULL DEFAULT 'hardware',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_bill_items_bill_id (bill_id),
+        CONSTRAINT fk_bill_items_bill FOREIGN KEY (bill_id) REFERENCES bills(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
+    )`,
     `CREATE TABLE IF NOT EXISTS notification_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         bill_id INT NULL,

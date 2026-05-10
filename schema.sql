@@ -52,6 +52,19 @@ CREATE TABLE IF NOT EXISTS bills (
         ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS bill_items (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    bill_id INT NOT NULL,
+    description VARCHAR(160) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    item_type VARCHAR(40) NOT NULL DEFAULT 'hardware',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_bill_items_bill_id (bill_id),
+    CONSTRAINT fk_bill_items_bill FOREIGN KEY (bill_id) REFERENCES bills(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS support_tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     customer_id INT NULL,
@@ -166,6 +179,10 @@ ON DUPLICATE KEY UPDATE
     status = VALUES(status),
     bill_date = VALUES(bill_date),
     due_date = VALUES(due_date);
+
+INSERT INTO bill_items (bill_id, description, amount, item_type)
+SELECT 1, 'Broadband subscription charges', 799.00, 'subscription'
+WHERE NOT EXISTS (SELECT 1 FROM bill_items WHERE bill_id = 1 AND item_type = 'subscription');
 
 INSERT INTO data_usage (customer_id, usage_date, used_gb, total_gb) VALUES
 (1, DATE_SUB(CURDATE(), INTERVAL 6 DAY), 42.00, 1000.00),
