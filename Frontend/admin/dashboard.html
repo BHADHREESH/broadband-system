@@ -687,7 +687,7 @@ tr:hover {
 <div id="billing" class="section">
     <h2>Billing</h2>
     <button class="btn" onclick="generateBill()">Generate Bill</button>
-    <button class="btn" onclick="addHardwareCharge()">Add Hardware Charge</button>
+    <button class="btn" onclick="addHardwareCharge()">Add Extra Charge</button>
     <button class="btn" onclick="sendReminders()">Send Reminders</button>
 
     <div class="table-box">
@@ -1532,8 +1532,8 @@ async function addHardwareCharge(billId = null) {
         return notify("Cannot add charges to a paid bill");
     }
 
-    const description = await askText("Hardware or service detail", "Router replacement");
-    if (!description) return notify("Hardware or service detail is required");
+    const description = await askText("Extra charge detail", "Router replacement");
+    if (!description) return notify("Extra charge detail is required");
 
     const amountValue = await askText("Charge amount");
     const amount = Number(amountValue);
@@ -1551,10 +1551,10 @@ async function addHardwareCharge(billId = null) {
             body: JSON.stringify({
                 description,
                 amount,
-                item_type: "hardware"
+                item_type: "service"
             })
         }));
-        notify("Hardware charge added to bill", "success");
+        notify("Extra charge added to bill", "success");
         await loadBills();
     } catch (err) {
         notify(err.message);
