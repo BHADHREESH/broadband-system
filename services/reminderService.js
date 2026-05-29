@@ -18,7 +18,7 @@ async function sendPendingBillReminders() {
     );
 
     for (const bill of bills) {
-        notifyBillDue(bill, bill);
+        await notifyBillDue(bill, bill);
         await db.executeQuery(
             "INSERT INTO bill_reminders (bill_id, reminder_date, reminder_type) VALUES (?, CURDATE(), 'due')",
             [bill.id]

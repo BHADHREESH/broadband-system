@@ -8,6 +8,8 @@ const {
     addCustomer,
     getCustomers,
     getMyCustomerProfile,
+    getMyNotifications,
+    markMyNotificationRead,
     updateMyCustomerProfile,
     updateCustomer,
     approveCustomer,
@@ -18,6 +20,8 @@ const {
 router.post("/", auth, auth.requireRole("admin", "staff"), requireIndianPhone("phone"), asyncHandler(addCustomer));
 router.get("/me", auth, auth.requireRole("customer"), asyncHandler(getMyCustomerProfile));
 router.put("/me", auth, auth.requireRole("customer"), optionalIndianPhone("phone"), asyncHandler(updateMyCustomerProfile));
+router.get("/me/notifications", auth, auth.requireRole("customer"), asyncHandler(getMyNotifications));
+router.put("/me/notifications/:id/read", auth, auth.requireRole("customer"), asyncHandler(markMyNotificationRead));
 router.get("/", auth, auth.requireRole("admin", "staff"), asyncHandler(getCustomers));
 router.put("/:id/approve", auth, auth.requireRole("admin"), asyncHandler(approveCustomer));
 router.delete("/:id/reject", auth, auth.requireRole("admin"), asyncHandler(rejectCustomer));

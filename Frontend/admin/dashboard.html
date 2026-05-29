@@ -737,6 +737,7 @@ tr:hover {
                     <th>Channel</th>
                     <th>Type</th>
                     <th>Status</th>
+                    <th>Message</th>
                     <th>Time</th>
                 </tr>
             </thead>
@@ -1015,6 +1016,15 @@ function showTableMessage(table, message, columns = 2) {
     table.innerHTML = `<tr><td colspan="${columns}">${message}</td></tr>`;
 }
 
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
 function renderCharts() {
     if (!window.Chart || !paymentStatusChart || !revenueChart) return;
 
@@ -1250,13 +1260,14 @@ async function loadNotifications() {
                 <td>${n.channel}</td>
                 <td>${n.notification_type}</td>
                 <td>${n.status}</td>
+                <td>${escapeHtml(n.message || "--")}</td>
                 <td>${formatDateTime(n.created_at)}</td>
             </tr>`;
         });
-        if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 5);
+        if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 6);
     } catch (err) {
         notificationLogsData = [];
-        showTableMessage(notificationTable, err.message, 5);
+        showTableMessage(notificationTable, err.message, 6);
     }
 }
 
@@ -1589,13 +1600,22 @@ async function sendBillNotification(id, notification_type) {
             },
             body: JSON.stringify({ notification_type })
         }));
-        const emailResult = Array.isArray(data.results)
-            ? data.results.find((result) => result.channel === "email")
-            : null;
-        if (emailResult && emailResult.status !== "sent") {
-            notify(`Email ${emailResult.status}: ${emailResult.message || "check backend logs"}`);
+        const results = Array.isArray(data.results) ? data.results : [];
+        const summary = data.summary || {};
+        const failed = results.filter((result) => result.status === "failed");
+        const skipped = results.filter((result) => result.status === "skipped");
+        const sentChannels = results
+            .filter((result) => result.status === "sent")
+            .map((result) => result.channel.toUpperCase());
+
+        if (summary.hasSent || sentChannels.length > 0) {
+            notify(`${sentChannels.join(", ")} sent`, "success");
+        } else if (failed.length > 0) {
+            notify(failed.map((item) => `${item.channel.toUpperCase()}: ${item.message || "failed"}`).join(" | "));
+        } else if (skipped.length > 0) {
+            notify(skipped.map((item) => `${item.channel.toUpperCase()}: ${item.message || "skipped"}`).join(" | "));
         } else {
-            notify(emailResult ? "Email sent" : "Notification processed", "success");
+            notify("Notification processed", "success");
         }
         loadNotifications();
     } catch (err) {

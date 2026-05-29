@@ -501,8 +501,10 @@ tr:hover td {
 <thead>
 <tr>
 <th>Customer</th>
+<th>Bill Details</th>
 <th>Amount</th>
 <th>Status</th>
+<th>Due Date</th>
 <th>Action</th>
 </tr>
 </thead>
@@ -584,6 +586,17 @@ function closeAppDialog(value) {
     appDialogBackdrop.classList.remove("show");
     if (appDialogResolver) appDialogResolver(value);
     appDialogResolver = null;
+}
+
+function money(value) {
+    return "Rs." + Number(value || 0).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatDate(value) {
+    return value ? new Date(value).toLocaleDateString("en-IN") : "--";
 }
 
 document.getElementById("appDialogForm").addEventListener("submit", (event) => {
@@ -712,14 +725,19 @@ async function loadAll() {
     paymentTable.innerHTML = "";
 
     payments.forEach(p => {
+        const isPaid = String(p.status || "").toLowerCase() === "paid";
+
         paymentTable.innerHTML += `
         <tr>
             <td>${p.customer_name}</td>
-            <td>Rs.${p.amount}</td>
+            <td>${p.item_summary || "Broadband subscription charges"}</td>
+            <td>${money(p.amount)}</td>
             <td>${p.status}</td>
+            <td>${formatDate(p.due_date)}</td>
             <td>
-                ${p.status !== "paid"
-                    ? `<button class="btn" onclick="markPaid(${p.id})">Mark Paid</button>`
+                ${!isPaid
+                    ? `<button class="btn" onclick="addExtraCharge(${p.id})">Add Charge</button>
+                       <button class="btn" onclick="markPaid(${p.id})">Mark Paid</button>`
                     : "Done"}
             </td>
         </tr>`;
@@ -815,6 +833,36 @@ async function markPaid(id) {
     });
     if (handleExpiredSession(res)) return;
     loadAll();
+}
+
+async function addExtraCharge(billId) {
+    const description = await askText("Extra charge detail", "Router replacement");
+    if (!description) return notify("Extra charge detail is required");
+
+    const amountValue = await askText("Charge amount");
+    const amount = Number(amountValue);
+    if (!Number.isFinite(amount) || amount <= 0) {
+        return notify("Valid charge amount is required");
+    }
+
+    try {
+        await handleJson(await fetch(apiUrl(`/api/bills/${billId}/items`), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + token
+            },
+            body: JSON.stringify({
+                description,
+                amount,
+                item_type: "service"
+            })
+        }));
+        notify("Extra charge added to bill", "success");
+        loadAll();
+    } catch (err) {
+        notify(err.message);
+    }
 }
 
 async function updateConnection(id, status) {

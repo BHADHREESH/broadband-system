@@ -2,7 +2,7 @@ const db = require("../config/db");
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
-const { notifyBillDue, notifyBillPaid } = require("../services/notificationService");
+const { notifyBillDue, notifyBillPaid, summarizeNotificationResults } = require("../services/notificationService");
 const { sendSuccess } = require("../utils/apiResponse");
 const { isValidBillDownloadToken } = require("../utils/billDownloadToken");
 
@@ -47,7 +47,7 @@ exports.generateBill = async (req, res) => {
         [result.insertId, "Broadband subscription charges", customer.price]
     );
 
-    notifyBillDue(customer, {
+    await notifyBillDue(customer, {
         id: result.insertId,
         amount: customer.price,
         due_date: dueDate
@@ -137,7 +137,7 @@ exports.markPaid = async (req, res) => {
              VALUES (?, ?, ?, 'paid', 'manual', 'staff', ?)`,
             [bill.id, bill.customer_id, bill.amount, `NW-${bill.id}-${Date.now()}`]
         );
-        notifyBillPaid(bill, bill);
+        await notifyBillPaid(bill, bill);
     }
 
     return sendSuccess(res, "Payment updated");
@@ -223,7 +223,12 @@ exports.sendBillNotification = async (req, res) => {
         throw httpError("Notification type must be due or paid", 400);
     }
 
-    return sendSuccess(res, "Notification processed", { notification_type: notificationType, results });
+    const summary = summarizeNotificationResults(results);
+    const message = summary.hasSent
+        ? `Notification sent through ${summary.sent.join(", ")}`
+        : "Notification could not be sent through any channel";
+
+    return sendSuccess(res, message, { notification_type: notificationType, results, summary });
 };
 
 const streamBillPdf = async (id, res) => {

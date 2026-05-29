@@ -50,6 +50,21 @@ const statements = [
         INDEX idx_notification_customer_id (customer_id),
         INDEX idx_notification_created_at (created_at)
     )`,
+    `CREATE TABLE IF NOT EXISTS customer_notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        bill_id INT NULL,
+        notification_type VARCHAR(30) NOT NULL,
+        title VARCHAR(120) NOT NULL,
+        message VARCHAR(500) NOT NULL,
+        is_read TINYINT(1) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_customer_notifications_customer_id (customer_id),
+        INDEX idx_customer_notifications_created_at (created_at),
+        CONSTRAINT fk_customer_notifications_customer FOREIGN KEY (customer_id) REFERENCES customers(id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE
+    )`,
     `CREATE TABLE IF NOT EXISTS bill_reminders (
         id INT AUTO_INCREMENT PRIMARY KEY,
         bill_id INT NOT NULL,

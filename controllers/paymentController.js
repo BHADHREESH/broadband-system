@@ -101,7 +101,7 @@ exports.verifyPayment = async (req, res) => {
                 `NW-${bill.id}-${Date.now()}`
             ]
         );
-        notifyBillPaid(bill, bill);
+        await notifyBillPaid(bill, bill);
     }
 
     return sendSuccess(res, "Payment verified");

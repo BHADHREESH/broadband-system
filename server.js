@@ -22,6 +22,10 @@ const {
     getEmailDiagnostics,
     logEmailDiagnostics
 } = require("./services/emailService");
+const {
+    sendDueDateMessage,
+    getWhatsappDiagnostics
+} = require("./services/whatsappService");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
 const { apiLimiter, paymentLimiter } = require("./middleware/rateLimiters");
 
@@ -158,23 +162,10 @@ app.get("/api/health", (req, res) => {
             time: new Date().toISOString(),
             notifications: {
                 email: Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS),
-                whatsapp: Boolean(
-                    (process.env.WHATSAPP_PHONE_NUMBER_ID && process.env.WHATSAPP_ACCESS_TOKEN)
-                    || (
-                        process.env.TWILIO_ACCOUNT_SID
-                        && process.env.TWILIO_AUTH_TOKEN
-                        && process.env.TWILIO_WHATSAPP_FROM
-                    )
-                ),
-                sms: Boolean(
-                    process.env.SMS_API_URL
-                    || (process.env.MSG91_AUTHKEY && process.env.MSG91_FLOW_ID)
-                    || (
-                        process.env.TWILIO_ACCOUNT_SID
-                        && process.env.TWILIO_AUTH_TOKEN
-                        && (process.env.TWILIO_FROM_NUMBER || process.env.TWILIO_MESSAGING_SERVICE_SID)
-                    )
-                )
+                whatsapp: getWhatsappDiagnostics().configured,
+                sms: getSmsDiagnostics().msg91.configured
+                    || getSmsDiagnostics().twilio.configured
+                    || getSmsDiagnostics().genericSmsApiConfigured
             }
         }
     });
@@ -200,6 +191,18 @@ app.get("/api/health/db", async (req, res) => {
             }
         });
     }
+});
+
+app.get("/api/health/notifications", (req, res) => {
+    res.json({
+        success: true,
+        message: "Notification configuration",
+        data: {
+            whatsapp: getWhatsappDiagnostics(),
+            sms: getSmsDiagnostics(),
+            email: getEmailDiagnostics()
+        }
+    });
 });
 
 app.get("/test-sms", async (req, res) => {
@@ -320,6 +323,72 @@ app.get("/test-msg91", async (req, res) => {
             data: {
                 sms: diagnostics,
                 msg91Error: {
+                    status: err.status,
+                    statusText: err.statusText,
+                    response: err.response
+                }
+            }
+        });
+    }
+});
+
+app.get("/test-whatsapp-bill-due", async (req, res) => {
+    const to = formatTwilioPhone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
+    const amount = String(req.query.amount || "799");
+    const dueDate = req.query.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    console.log("/test-whatsapp-bill-due requested:", {
+        to,
+        template: process.env.WHATSAPP_TEMPLATE_BILL_DUE || "bill_due_reminder",
+        language: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en"
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing WhatsApp destination. Use /test-whatsapp-bill-due?to=+91XXXXXXXXXX or set TEST_WHATSAPP_TO."
+        });
+    }
+
+    if (!isE164Phone(to)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
+            data: { to }
+        });
+    }
+
+    try {
+        const result = await sendDueDateMessage(
+            {
+                name: "Customer",
+                phone: to
+            },
+            {
+                id: "TEST",
+                amount,
+                due_date: dueDate
+            }
+        );
+
+        return res.json({
+            success: true,
+            message: result && result.skipped ? "WhatsApp bill due template skipped" : "WhatsApp bill due template request sent",
+            data: {
+                result,
+                template: process.env.WHATSAPP_TEMPLATE_BILL_DUE || "bill_due_reminder",
+                language: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en"
+            }
+        });
+    } catch (err) {
+        console.error("Test WhatsApp bill due failed:", err.message);
+        console.error(err);
+
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err.message || "Test WhatsApp bill due failed",
+            data: {
+                whatsappError: {
                     status: err.status,
                     statusText: err.statusText,
                     response: err.response

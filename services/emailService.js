@@ -6,10 +6,12 @@ const {
     SMTP_PORT,
     SMTP_USER,
     SMTP_PASS,
-    SMTP_FROM
+    SMTP_FROM,
+    SMTP_FORCE_IPV4
 } = process.env;
 
 const isConfigured = () => Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS);
+const shouldForceIpv4 = () => !["0", "false", "no"].includes(String(SMTP_FORCE_IPV4 || "true").trim().toLowerCase());
 
 const getEmailDiagnostics = () => ({
     smtpHost: SMTP_HOST || "",
@@ -19,6 +21,7 @@ const getEmailDiagnostics = () => ({
     smtpPassPresent: Boolean(SMTP_PASS),
     configured: isConfigured(),
     secure: Number(SMTP_PORT) === 465,
+    forceIpv4: shouldForceIpv4(),
     nodeVersion: process.version
 });
 
@@ -45,6 +48,7 @@ const getTransporter = () => nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT),
     secure: Number(SMTP_PORT) === 465,
+    ...(shouldForceIpv4() ? { family: 4 } : {}),
     auth: {
         user: SMTP_USER,
         pass: SMTP_PASS
@@ -124,10 +128,34 @@ const sendPaidEmail = (customer, bill) => {
     });
 };
 
+const sendCustomerApprovedEmail = (customer) => sendEmail({
+    to: customer.email,
+    subject: "NetWave account approved",
+    text: `Hi ${customer.name || "Customer"}, your NetWave broadband account is approved. You can now log in and use your customer dashboard.`,
+    html: `
+        <p>Hi ${customer.name || "Customer"},</p>
+        <p>Your NetWave broadband account is approved.</p>
+        <p>You can now log in and use your customer dashboard.</p>
+    `
+});
+
+const sendCustomerRejectedEmail = (customer) => sendEmail({
+    to: customer.email,
+    subject: "NetWave registration update",
+    text: `Hi ${customer.name || "Customer"}, your NetWave broadband registration could not be approved. Please contact support for help.`,
+    html: `
+        <p>Hi ${customer.name || "Customer"},</p>
+        <p>Your NetWave broadband registration could not be approved.</p>
+        <p>Please contact support for help.</p>
+    `
+});
+
 module.exports = {
     sendEmail,
     sendDueDateEmail,
     sendPaidEmail,
+    sendCustomerApprovedEmail,
+    sendCustomerRejectedEmail,
     getEmailDiagnostics,
     logEmailDiagnostics
 };

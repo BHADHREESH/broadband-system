@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const db = require("../config/db");
 const env = require("../config/env");
+const { notifyCustomerApproved, notifyCustomerRejected } = require("../services/notificationService");
 const { sendSuccess } = require("../utils/apiResponse");
 
 function httpError(message, statusCode) {
@@ -126,6 +127,49 @@ exports.updateMyCustomerProfile = async (req, res) => {
     return sendSuccess(res, "Profile updated");
 };
 
+exports.getMyNotifications = async (req, res) => {
+    const email = req.user && req.user.email;
+
+    if (!email) {
+        throw httpError("Customer email missing. Please login again.", 400);
+    }
+
+    const notifications = await db.executeQuery(
+        `SELECT customer_notifications.*
+         FROM customer_notifications
+         JOIN customers ON customer_notifications.customer_id = customers.id
+         WHERE customers.email = ?
+         ORDER BY customer_notifications.id DESC
+         LIMIT 50`,
+        [email]
+    );
+
+    return sendSuccess(res, "Notifications loaded", notifications);
+};
+
+exports.markMyNotificationRead = async (req, res) => {
+    const email = req.user && req.user.email;
+    const { id } = req.params;
+
+    if (!email) {
+        throw httpError("Customer email missing. Please login again.", 400);
+    }
+
+    const result = await db.executeQuery(
+        `UPDATE customer_notifications
+         JOIN customers ON customer_notifications.customer_id = customers.id
+         SET customer_notifications.is_read = 1
+         WHERE customer_notifications.id = ? AND customers.email = ?`,
+        [id, email]
+    );
+
+    if (result.affectedRows === 0) {
+        throw httpError("Notification not found", 404);
+    }
+
+    return sendSuccess(res, "Notification marked as read");
+};
+
 exports.updateCustomer = async (req, res) => {
     const { id } = req.params;
     const { name, email, phone, address, plan_id, status } = req.body;
@@ -166,6 +210,15 @@ exports.updateCustomer = async (req, res) => {
 
 exports.approveCustomer = async (req, res) => {
     const { id } = req.params;
+    const customers = await db.executeQuery(
+        "SELECT id, name, email, phone FROM customers WHERE id = ? AND status = 'pending' LIMIT 1",
+        [id]
+    );
+
+    if (customers.length === 0) {
+        throw httpError("Pending customer not found", 404);
+    }
+
     const result = await db.executeQuery(
         "UPDATE customers SET status = 'active' WHERE id = ? AND status = 'pending'",
         [id]
@@ -175,13 +228,15 @@ exports.approveCustomer = async (req, res) => {
         throw httpError("Pending customer not found", 404);
     }
 
+    await notifyCustomerApproved(customers[0]);
+
     return sendSuccess(res, "Customer approved");
 };
 
 exports.rejectCustomer = async (req, res) => {
     const { id } = req.params;
     const results = await db.executeQuery(
-        "SELECT email FROM customers WHERE id = ? AND status = 'pending' LIMIT 1",
+        "SELECT id, name, email, phone FROM customers WHERE id = ? AND status = 'pending' LIMIT 1",
         [id]
     );
 
@@ -189,9 +244,11 @@ exports.rejectCustomer = async (req, res) => {
         throw httpError("Pending customer not found", 404);
     }
 
-    const email = results[0].email;
+    const customer = results[0];
+    const email = customer.email;
     await db.executeQuery("DELETE FROM customers WHERE id = ? AND status = 'pending'", [id]);
     await db.executeQuery("DELETE FROM users WHERE email = ? AND role = 'customer'", [email]);
+    await notifyCustomerRejected(customer);
 
     return sendSuccess(res, "Customer registration rejected");
 };

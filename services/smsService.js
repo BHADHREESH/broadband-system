@@ -1,14 +1,25 @@
+const firstValue = (...values) => values.find((value) => String(value || "").trim());
+
 const SMS_API_URL = process.env.SMS_API_URL;
 const SMS_API_KEY = process.env.SMS_API_KEY;
 const SMS_FROM = process.env.SMS_FROM;
-const MSG91_AUTHKEY = process.env.MSG91_AUTHKEY;
-const MSG91_FLOW_ID = process.env.MSG91_FLOW_ID;
-const MSG91_SENDER = process.env.MSG91_SENDER;
+const MSG91_AUTHKEY = firstValue(process.env.MSG91_AUTHKEY, process.env.MSG91_SMS_AUTHKEY);
+const MSG91_FLOW_ID = firstValue(process.env.MSG91_FLOW_ID, process.env.MSG91_SMS_FLOW_ID, process.env.MSG91_TEMPLATE_ID);
+const MSG91_SENDER = firstValue(process.env.MSG91_SENDER, process.env.MSG91_SMS_SENDER, process.env.MSG91_SENDER_ID);
 const MSG91_MESSAGE_VAR = process.env.MSG91_MESSAGE_VAR || "message";
+const MSG91_ROUTE = process.env.MSG91_ROUTE;
+const MSG91_SMS_API_URL = process.env.MSG91_SMS_API_URL || "https://api.msg91.com/api/v5/flow/";
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_FROM_NUMBER = process.env.TWILIO_FROM_NUMBER;
 const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID;
+const SMS_DUPLICATE_WINDOW_MS = Number(process.env.SMS_DUPLICATE_WINDOW_MS || 12000);
+const recentSmsRequests = new Map();
+
+const hasRealValue = (value) => {
+    const text = String(value || "").trim();
+    return Boolean(text && !text.startsWith("your-"));
+};
 
 class TwilioSmsError extends Error {
     constructor(message, details) {
@@ -22,14 +33,14 @@ class TwilioSmsError extends Error {
 }
 
 const isTwilioConfigured = () => Boolean(
-    TWILIO_ACCOUNT_SID
-    && TWILIO_AUTH_TOKEN
-    && (TWILIO_FROM_NUMBER || TWILIO_MESSAGING_SERVICE_SID)
+    hasRealValue(TWILIO_ACCOUNT_SID)
+    && hasRealValue(TWILIO_AUTH_TOKEN)
+    && (hasRealValue(TWILIO_FROM_NUMBER) || hasRealValue(TWILIO_MESSAGING_SERVICE_SID))
 );
 
-const isMsg91Configured = () => Boolean(MSG91_AUTHKEY && MSG91_FLOW_ID);
+const isMsg91Configured = () => Boolean(hasRealValue(MSG91_AUTHKEY) && hasRealValue(MSG91_FLOW_ID));
 
-const isConfigured = () => Boolean(SMS_API_URL || isMsg91Configured() || isTwilioConfigured());
+const isConfigured = () => Boolean(hasRealValue(SMS_API_URL) || isMsg91Configured() || isTwilioConfigured());
 
 const formatPhone = (phone) => {
     if (!phone) return "";
@@ -66,15 +77,18 @@ const getMsg91Diagnostics = () => ({
     authkeyPresent: Boolean(MSG91_AUTHKEY),
     flowId: MSG91_FLOW_ID || "",
     sender: MSG91_SENDER || "",
+    route: MSG91_ROUTE || "",
+    apiUrl: MSG91_SMS_API_URL,
     messageVariable: MSG91_MESSAGE_VAR,
     configured: isMsg91Configured(),
     nodeVersion: process.version
 });
 
 const logMsg91Diagnostics = () => {
-    console.log("MSG91_AUTHKEY present:", Boolean(process.env.MSG91_AUTHKEY));
-    console.log("MSG91_FLOW_ID:", process.env.MSG91_FLOW_ID);
-    console.log("MSG91_SENDER:", process.env.MSG91_SENDER);
+    console.log("MSG91_AUTHKEY present:", Boolean(MSG91_AUTHKEY));
+    console.log("MSG91_FLOW_ID:", MSG91_FLOW_ID);
+    console.log("MSG91_SENDER:", MSG91_SENDER);
+    console.log("MSG91_ROUTE:", MSG91_ROUTE);
     console.log("MSG91_MESSAGE_VAR:", process.env.MSG91_MESSAGE_VAR || "message");
     console.log("MSG91 runtime diagnostics:", getMsg91Diagnostics());
 };
@@ -101,6 +115,39 @@ const formatDate = (date) => {
         month: "short",
         year: "numeric"
     });
+};
+
+const getDuplicateSmsKey = (phone, message) => `${formatPhone(phone)}:${String(message || "").trim()}`;
+
+const getDuplicateSmsSkip = (phone, message) => {
+    if (!SMS_DUPLICATE_WINDOW_MS) return null;
+
+    const key = getDuplicateSmsKey(phone, message);
+    const lastSentAt = recentSmsRequests.get(key);
+
+    if (!lastSentAt) return null;
+
+    const elapsed = Date.now() - lastSentAt;
+    if (elapsed >= SMS_DUPLICATE_WINDOW_MS) return null;
+
+    const waitSeconds = Math.ceil((SMS_DUPLICATE_WINDOW_MS - elapsed) / 1000);
+    return {
+        skipped: true,
+        reason: `Duplicate SMS suppressed. Retry after ${waitSeconds} seconds.`
+    };
+};
+
+const rememberSmsRequest = (phone, message) => {
+    if (!SMS_DUPLICATE_WINDOW_MS) return;
+
+    const now = Date.now();
+    recentSmsRequests.set(getDuplicateSmsKey(phone, message), now);
+
+    for (const [key, sentAt] of recentSmsRequests) {
+        if (now - sentAt > SMS_DUPLICATE_WINDOW_MS) {
+            recentSmsRequests.delete(key);
+        }
+    }
 };
 
 const sendTwilioSms = async (phone, message) => {
@@ -185,20 +232,27 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
         return { skipped: true, reason: "Customer phone missing" };
     }
 
+    if (!isMsg91Configured()) {
+        return { skipped: true, reason: "MSG91 SMS not configured" };
+    }
+
     const recipient = {
         mobiles: to,
         [MSG91_MESSAGE_VAR]: message,
         message,
+        var: message,
+        var1: message,
         ...variables
     };
 
     const body = {
         flow_id: MSG91_FLOW_ID,
         recipients: [recipient],
-        ...(MSG91_SENDER ? { sender: MSG91_SENDER } : {})
+        ...(MSG91_SENDER ? { sender: MSG91_SENDER } : {}),
+        ...(MSG91_ROUTE ? { route: MSG91_ROUTE } : {})
     };
 
-    const response = await fetch("https://api.msg91.com/api/v5/flow/", {
+    const response = await fetch(MSG91_SMS_API_URL, {
         method: "POST",
         headers: {
             authkey: MSG91_AUTHKEY,
@@ -217,6 +271,7 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
             request: {
                 flowId: MSG91_FLOW_ID,
                 sender: MSG91_SENDER || undefined,
+                route: MSG91_ROUTE || undefined,
                 to,
                 variables: Object.keys(recipient)
             },
@@ -246,12 +301,25 @@ const sendSms = async (phone, message, variables = {}) => {
         return { skipped: true, reason: "SMS not configured" };
     }
 
+    const duplicateSkip = getDuplicateSmsSkip(phone, message);
+    if (duplicateSkip) {
+        console.log("Duplicate SMS skipped:", {
+            to: formatPhone(phone),
+            waitMs: SMS_DUPLICATE_WINDOW_MS
+        });
+        return duplicateSkip;
+    }
+
     if (isMsg91Configured()) {
-        return sendMsg91Sms(phone, message, variables);
+        const result = await sendMsg91Sms(phone, message, variables);
+        rememberSmsRequest(phone, message);
+        return result;
     }
 
     if (isTwilioConfigured()) {
-        return sendTwilioSms(phone, message);
+        const result = await sendTwilioSms(phone, message);
+        rememberSmsRequest(phone, message);
+        return result;
     }
 
     const to = formatPhone(phone);
@@ -280,6 +348,7 @@ const sendSms = async (phone, message, variables = {}) => {
         throw new Error(data.message || data.error || "SMS failed");
     }
 
+    rememberSmsRequest(phone, message);
     return data;
 };
 
@@ -306,11 +375,31 @@ const sendPaidSms = (customer, bill) => sendSms(
     }
 );
 
+const sendCustomerApprovedSms = (customer) => sendSms(
+    customer.phone,
+    `NetWave: your broadband account is approved. You can now log in and use your customer dashboard.`,
+    {
+        name: customer.name || "Customer",
+        customer_name: customer.name || "Customer"
+    }
+);
+
+const sendCustomerRejectedSms = (customer) => sendSms(
+    customer.phone,
+    `NetWave: your broadband registration could not be approved. Please contact support for help.`,
+    {
+        name: customer.name || "Customer",
+        customer_name: customer.name || "Customer"
+    }
+);
+
 module.exports = {
     sendSms,
     sendMsg91Sms,
     sendDueDateSms,
     sendPaidSms,
+    sendCustomerApprovedSms,
+    sendCustomerRejectedSms,
     getSmsDiagnostics,
     getMsg91Diagnostics,
     getTwilioDiagnostics,

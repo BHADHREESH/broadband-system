@@ -505,6 +505,7 @@ input {
 <div class="tabs">
     <button class="btn tab-btn active" onclick="showSection('planSection', this)">My Plan</button>
     <button class="btn tab-btn" id="paymentTab" onclick="showSection('paymentSection', this)">Bills & Payment</button>
+    <button class="btn tab-btn" onclick="showSection('notificationSection', this)">Notifications</button>
     <button class="btn tab-btn" onclick="showSection('supportSection', this)">Support</button>
     <button class="btn tab-btn" onclick="showSection('aiSection', this)">AI Help</button>
 </div>
@@ -598,6 +599,24 @@ input {
     </div>
 </div>
 
+</div>
+
+<div id="notificationSection" class="section">
+    <h2>Notifications</h2>
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Message</th>
+                    <th>Status</th>
+                    <th>Time</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="notificationTable"></tbody>
+        </table>
+    </div>
 </div>
 
 <div id="supportSection" class="section">
@@ -985,6 +1004,57 @@ async function loadPayments() {
     });
 }
 
+async function loadNotifications() {
+    const res = await fetch(apiUrl("/api/customers/me/notifications"), {
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    const data = await readApiJson(res);
+    const table = document.getElementById("notificationTable");
+    table.innerHTML = "";
+
+    if (!res.ok) {
+        table.innerHTML = `<tr><td colspan="5">${data.message || "Unable to load notifications"}</td></tr>`;
+        return;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+        table.innerHTML = `<tr><td colspan="5">No notifications found</td></tr>`;
+        return;
+    }
+
+    data.forEach(item => {
+        const isRead = Number(item.is_read) === 1;
+        table.innerHTML += `
+        <tr>
+            <td>${item.title || "--"}</td>
+            <td>${item.message || "--"}</td>
+            <td>${isRead ? "Read" : "New"}</td>
+            <td>${item.created_at ? new Date(item.created_at).toLocaleString("en-IN") : "--"}</td>
+            <td>${isRead ? "--" : `<button class="btn" onclick="markNotificationRead(${item.id})">Mark Read</button>`}</td>
+        </tr>`;
+    });
+}
+
+async function markNotificationRead(id) {
+    const res = await fetch(apiUrl(`/api/customers/me/notifications/${id}/read`), {
+        method: "PUT",
+        headers: { Authorization: "Bearer " + token }
+    });
+
+    if (handleExpiredSession(res)) return;
+
+    if (!res.ok) {
+        const data = await readApiJson(res);
+        notify(data.message || "Unable to update notification");
+        return;
+    }
+
+    loadNotifications();
+}
+
 /* PAYMENT */
 async function payNow(amount, billId = currentBillId) {
 
@@ -1055,6 +1125,7 @@ async function payNow(amount, billId = currentBillId) {
                 notify("Payment successful", "success");
                 loadBills();
                 loadPayments();
+                loadNotifications();
             }
         };
 
@@ -1156,6 +1227,7 @@ loadPlan();
 loadUsage();
 loadBills();
 loadPayments();
+loadNotifications();
 loadTickets();
 
 </script>
