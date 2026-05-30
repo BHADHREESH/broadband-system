@@ -1038,18 +1038,54 @@ function notificationPurpose(type) {
 
 function notificationResultBadge(status) {
     const value = String(status || "sent").toLowerCase();
-    const label = value.charAt(0).toUpperCase() + value.slice(1);
+    const labels = {
+        sent: "Sent",
+        partial: "Partly sent",
+        failed: "Failed",
+        skipped: "Skipped"
+    };
+    const label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
     const className = value === "sent" ? "paid" : "unpaid";
     return `<span class="badge ${className}">${label}</span>`;
 }
 
+function channelLabel(channel) {
+    const labels = {
+        app: "App",
+        email: "Email",
+        sms: "SMS",
+        whatsapp: "WhatsApp"
+    };
+    return labels[channel] || channel;
+}
+
+function channelList(value) {
+    const channels = String(value || "")
+        .split(",")
+        .map(channel => channel.trim())
+        .filter(Boolean)
+        .map(channelLabel);
+
+    if (channels.length === 0) return "";
+    if (channels.length === 1) return channels[0];
+    return `${channels.slice(0, -1).join(", ")} and ${channels[channels.length - 1]}`;
+}
+
 function notificationDetails(notification) {
     const parts = [];
-    if (notification.sent_channels) parts.push(`Sent: ${notification.sent_channels}`);
-    if (notification.failed_channels) parts.push(`Failed: ${notification.failed_channels}`);
-    if (notification.skipped_channels) parts.push(`Skipped: ${notification.skipped_channels}`);
-    if (notification.message) parts.push(notification.message);
-    return parts.length ? escapeHtml(parts.join(" | ")) : "--";
+    const purpose = notificationPurpose(notification.notification_type).toLowerCase();
+    const sent = channelList(notification.sent_channels);
+    const failed = channelList(notification.failed_channels);
+    const skipped = channelList(notification.skipped_channels);
+    const message = String(notification.message || "").trim();
+
+    if (sent) parts.push(`${notificationPurpose(notification.notification_type)} was sent through ${sent}.`);
+    if (failed) parts.push(`${failed} failed. Check provider settings or balance.`);
+    if (skipped) parts.push(`${skipped} was skipped because it is not configured or was already sent recently.`);
+    if (!sent && !failed && !skipped) parts.push(`No ${purpose} was delivered.`);
+    if (message && failed) parts.push(`Reason: ${message}`);
+
+    return escapeHtml(parts.join(" "));
 }
 
 function renderCharts() {
