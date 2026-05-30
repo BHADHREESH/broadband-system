@@ -198,9 +198,16 @@ exports.sendBillNotification = async (req, res) => {
 
     const rows = await db.executeQuery(
         `SELECT bills.id, bills.customer_id, bills.amount, bills.status, bills.due_date,
-                customers.name, customers.email, customers.phone
+                customers.name, customers.email, customers.phone,
+                COALESCE(paid_payments.paid_payment_count, 0) AS paid_payment_count
          FROM bills
          JOIN customers ON bills.customer_id = customers.id
+         LEFT JOIN (
+            SELECT bill_id, COUNT(*) AS paid_payment_count
+            FROM payments
+            WHERE LOWER(TRIM(COALESCE(status, ''))) = 'paid'
+            GROUP BY bill_id
+         ) paid_payments ON paid_payments.bill_id = bills.id
          WHERE bills.id = ?
          LIMIT 1`,
         [id]
@@ -211,13 +218,26 @@ exports.sendBillNotification = async (req, res) => {
     }
 
     const bill = rows[0];
-    const notificationType = requestedType || (String(bill.status).toLowerCase() === "paid" ? "paid" : "due");
+    const paidPaymentCount = Number(bill.paid_payment_count || 0);
+    const isBillMarkedPaid = String(bill.status || "").trim().toLowerCase() === "paid";
+    const isPaid = isBillMarkedPaid || paidPaymentCount > 0;
+
+    if (!isBillMarkedPaid && paidPaymentCount > 0) {
+        await db.executeQuery("UPDATE bills SET status = 'paid' WHERE id = ?", [bill.id]);
+        bill.status = "paid";
+    }
+
+    const notificationType = requestedType || (isPaid ? "paid" : "due");
 
     let results;
 
     if (notificationType === "paid") {
         results = await notifyBillPaid(bill, bill);
     } else if (notificationType === "due") {
+        if (isPaid) {
+            throw httpError("Cannot send payment reminder for a paid bill", 400);
+        }
+
         results = await notifyBillDue(bill, bill);
     } else {
         throw httpError("Notification type must be due or paid", 400);

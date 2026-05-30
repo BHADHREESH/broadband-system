@@ -85,6 +85,18 @@ const formatMonth = (date) => {
     });
 };
 
+const isOverdue = (bill) => {
+    if (!bill || !bill.due_date) return false;
+
+    const dueDate = new Date(bill.due_date);
+    const today = new Date();
+
+    dueDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
+};
+
 const sendTextMessage = async (phone, body) => {
     if (!isConfigured()) {
         console.log("WhatsApp not configured. Skipped message:", body);
@@ -324,7 +336,10 @@ const sendTwilioWhatsapp = async (phone, body) => {
 };
 
 const sendDueDateMessage = (customer, bill) => {
-    const body = `Hi ${customer.name || "Customer"}, your NetWave broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date to keep your service active.`;
+    const overdue = isOverdue(bill);
+    const body = overdue
+        ? `Hi ${customer.name || "Customer"}, your NetWave broadband bill of Rs. ${bill.amount} was due on ${formatDate(bill.due_date)} and is still pending. Please pay now to avoid service interruption.`
+        : `Hi ${customer.name || "Customer"}, your NetWave broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date to keep your service active.`;
 
     return sendTemplateMessage(customer.phone, WHATSAPP_TEMPLATE_BILL_DUE, [
         formatMonth(bill.due_date),

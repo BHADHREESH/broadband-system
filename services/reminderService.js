@@ -11,21 +11,61 @@ async function sendPendingBillReminders() {
             ON bill_reminders.bill_id = bills.id
             AND bill_reminders.reminder_date = CURDATE()
             AND bill_reminders.reminder_type = 'due'
-         WHERE bills.status <> 'paid'
+         WHERE LOWER(TRIM(COALESCE(bills.status, 'unpaid'))) <> 'paid'
            AND bill_reminders.id IS NULL
-           AND bills.due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+           AND bills.due_date < CURDATE()
+           AND NOT EXISTS (
+                SELECT 1
+                FROM payments
+                WHERE payments.bill_id = bills.id
+                  AND LOWER(TRIM(COALESCE(payments.status, ''))) = 'paid'
+           )
          ORDER BY bills.due_date ASC`
     );
 
+    let sentCount = 0;
+
     for (const bill of bills) {
-        await notifyBillDue(bill, bill);
-        await db.executeQuery(
-            "INSERT INTO bill_reminders (bill_id, reminder_date, reminder_type) VALUES (?, CURDATE(), 'due')",
+        const paidRows = await db.executeQuery(
+            `SELECT bills.status,
+                    COUNT(payments.id) AS paid_payment_count
+             FROM bills
+             LEFT JOIN payments
+                ON payments.bill_id = bills.id
+                AND LOWER(TRIM(COALESCE(payments.status, ''))) = 'paid'
+             WHERE bills.id = ?
+             GROUP BY bills.id, bills.status`,
             [bill.id]
         );
+        const currentBill = paidRows[0] || {};
+        const paidPaymentCount = Number(currentBill.paid_payment_count || 0);
+        const isBillMarkedPaid = String(currentBill.status || "").trim().toLowerCase() === "paid";
+        const isPaid = isBillMarkedPaid || paidPaymentCount > 0;
+
+        if (isPaid) {
+            if (!isBillMarkedPaid && paidPaymentCount > 0) {
+                await db.executeQuery("UPDATE bills SET status = 'paid' WHERE id = ?", [bill.id]);
+            }
+
+            console.log(`Skipped paid bill reminder for bill #${bill.id}`);
+            continue;
+        }
+
+        const reminder = await db.executeQuery(
+            "INSERT IGNORE INTO bill_reminders (bill_id, reminder_date, reminder_type) VALUES (?, CURDATE(), 'due')",
+            [bill.id]
+        );
+
+        if (reminder.affectedRows === 0) {
+            console.log(`Skipped duplicate daily reminder for bill #${bill.id}`);
+            continue;
+        }
+
+        await notifyBillDue(bill, bill);
+        sentCount += 1;
     }
 
-    return bills.length;
+    return sentCount;
 }
 
 function startReminderScheduler() {

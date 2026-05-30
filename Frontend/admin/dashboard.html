@@ -734,11 +734,12 @@ tr:hover {
             <thead>
                 <tr>
                     <th>Customer</th>
-                    <th>Channel</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Message</th>
-                    <th>Time</th>
+                    <th>Bill</th>
+                    <th>Purpose</th>
+                    <th>Channels</th>
+                    <th>Result</th>
+                    <th>Details</th>
+                    <th>Date</th>
                 </tr>
             </thead>
             <tbody id="notificationTable"></tbody>
@@ -1025,6 +1026,32 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
+function notificationPurpose(type) {
+    const labels = {
+        due: "Bill reminder",
+        paid: "Payment receipt",
+        approved: "Account approved",
+        rejected: "Account rejected"
+    };
+    return labels[type] || type || "--";
+}
+
+function notificationResultBadge(status) {
+    const value = String(status || "sent").toLowerCase();
+    const label = value.charAt(0).toUpperCase() + value.slice(1);
+    const className = value === "sent" ? "paid" : "unpaid";
+    return `<span class="badge ${className}">${label}</span>`;
+}
+
+function notificationDetails(notification) {
+    const parts = [];
+    if (notification.sent_channels) parts.push(`Sent: ${notification.sent_channels}`);
+    if (notification.failed_channels) parts.push(`Failed: ${notification.failed_channels}`);
+    if (notification.skipped_channels) parts.push(`Skipped: ${notification.skipped_channels}`);
+    if (notification.message) parts.push(notification.message);
+    return parts.length ? escapeHtml(parts.join(" | ")) : "--";
+}
+
 function renderCharts() {
     if (!window.Chart || !paymentStatusChart || !revenueChart) return;
 
@@ -1212,7 +1239,7 @@ async function loadBills() {
                 <td>${b.due_date ? new Date(b.due_date).toLocaleDateString("en-IN") : "--"}</td>
                 <td>
                     ${isPaid ? "" : `<button class="btn" onclick="addHardwareCharge(${b.id})">Add Charge</button>`}
-                    <button class="btn" onclick="sendBillNotification(${b.id}, '${isPaid ? "paid" : "due"}')">Notify</button>
+                    <button class="btn" onclick="sendBillNotification(${b.id}, '${isPaid ? "paid" : "due"}')">${isPaid ? "Send Receipt" : "Send Reminder"}</button>
                     ${isPaid ? `<button class="btn secondary" onclick="downloadBill(${b.id})">Download</button>` : ""}
                 </td>
             </tr>`;
@@ -1257,17 +1284,18 @@ async function loadNotifications() {
             notificationTable.innerHTML+=`
             <tr>
                 <td>${n.customer_name || "--"}</td>
-                <td>${n.channel}</td>
-                <td>${n.notification_type}</td>
-                <td>${n.status}</td>
-                <td>${escapeHtml(n.message || "--")}</td>
+                <td>${n.bill_id ? `#${n.bill_id}` : "--"}</td>
+                <td>${notificationPurpose(n.notification_type)}</td>
+                <td>${escapeHtml(n.channels || "--")}</td>
+                <td>${notificationResultBadge(n.status)}</td>
+                <td>${notificationDetails(n)}</td>
                 <td>${formatDateTime(n.created_at)}</td>
             </tr>`;
         });
-        if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 6);
+        if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 7);
     } catch (err) {
         notificationLogsData = [];
-        showTableMessage(notificationTable, err.message, 6);
+        showTableMessage(notificationTable, err.message, 7);
     }
 }
 
@@ -1573,7 +1601,7 @@ async function addHardwareCharge(billId = null) {
 }
 
 async function sendReminders() {
-    if (!await askConfirm("Send due reminders for unpaid bills due within 3 days?")) return;
+    if (!await askConfirm("Send today's overdue reminders for unpaid bills?")) return;
 
     try {
         const data = await handleJson(await fetch(apiUrl("/api/bills/reminders/send"), {

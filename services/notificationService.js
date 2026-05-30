@@ -60,6 +60,26 @@ const getCustomerId = (customer) => {
     return customer.customer_id || customer.id || null;
 };
 
+const isOverdue = (bill) => {
+    if (!bill || !bill.due_date) return false;
+
+    const dueDate = new Date(bill.due_date);
+    const today = new Date();
+
+    dueDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
+};
+
+const getBillReminderText = (bill) => {
+    if (isOverdue(bill)) {
+        return `Your broadband bill of Rs. ${bill.amount} is overdue. Please pay now to avoid service interruption.`;
+    }
+
+    return `Your broadband bill of Rs. ${bill.amount} is pending. Please pay before the due date to keep your service active.`;
+};
+
 const createInAppNotification = async (customer, bill, type, title, message) => {
     const customerId = getCustomerId(customer);
 
@@ -102,13 +122,15 @@ const sendAndLog = async (promise, customer, bill, channel, type) => {
 };
 
 const notifyBillDue = (customer, bill) => {
+    const reminderText = getBillReminderText(bill);
+
     return Promise.all([
         sendAndLog(createInAppNotification(
             customer,
             bill,
             "due",
-            "Bill payment reminder",
-            `Your broadband bill of Rs. ${bill.amount} is pending. Please pay before the due date to keep your service active.`
+            isOverdue(bill) ? "Overdue bill reminder" : "Bill payment reminder",
+            reminderText
         ), customer, bill, "app", "due"),
         sendAndLog(sendDueDateMessage(customer, bill), customer, bill, "whatsapp", "due"),
         sendAndLog(sendDueDateSms(customer, bill), customer, bill, "sms", "due"),

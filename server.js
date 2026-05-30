@@ -452,6 +452,7 @@ app.get("/test-email", async (req, res) => {
                 emailError: {
                     code: err.code,
                     command: err.command,
+                    originalMessage: err.originalMessage,
                     response: err.response,
                     responseCode: err.responseCode
                 }

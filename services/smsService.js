@@ -117,6 +117,18 @@ const formatDate = (date) => {
     });
 };
 
+const isOverdue = (bill) => {
+    if (!bill || !bill.due_date) return false;
+
+    const dueDate = new Date(bill.due_date);
+    const today = new Date();
+
+    dueDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
+};
+
 const getDuplicateSmsKey = (phone, message) => `${formatPhone(phone)}:${String(message || "").trim()}`;
 
 const getDuplicateSmsSkip = (phone, message) => {
@@ -354,7 +366,9 @@ const sendSms = async (phone, message, variables = {}) => {
 
 const sendDueDateSms = (customer, bill) => sendSms(
     customer.phone,
-    `NetWave reminder: your broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date.`,
+    isOverdue(bill)
+        ? `NetWave overdue reminder: your broadband bill of Rs. ${bill.amount} was due on ${formatDate(bill.due_date)} and is still pending. Please pay now to avoid service interruption.`
+        : `NetWave reminder: your broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date.`,
     {
         name: customer.name || "Customer",
         customer_name: customer.name || "Customer",

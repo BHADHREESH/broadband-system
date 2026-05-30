@@ -7,11 +7,30 @@ const {
     SMTP_USER,
     SMTP_PASS,
     SMTP_FROM,
-    SMTP_FORCE_IPV4
+    SMTP_FORCE_IPV4,
+    SMTP_CONNECTION_TIMEOUT_MS,
+    SMTP_GREETING_TIMEOUT_MS,
+    SMTP_SOCKET_TIMEOUT_MS
 } = process.env;
 
 const isConfigured = () => Boolean(SMTP_HOST && SMTP_PORT && SMTP_USER && SMTP_PASS);
 const shouldForceIpv4 = () => !["0", "false", "no"].includes(String(SMTP_FORCE_IPV4 || "true").trim().toLowerCase());
+const numberFromEnv = (value, fallback) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+const smtpTimeouts = () => ({
+    connectionTimeout: numberFromEnv(SMTP_CONNECTION_TIMEOUT_MS, 15000),
+    greetingTimeout: numberFromEnv(SMTP_GREETING_TIMEOUT_MS, 10000),
+    socketTimeout: numberFromEnv(SMTP_SOCKET_TIMEOUT_MS, 20000)
+});
+const getFromAddress = () => {
+    const from = String(SMTP_FROM || "").trim();
+
+    if (!from) return SMTP_USER;
+
+    return from.includes("<") && !from.includes(" <") ? from.replace("<", " <") : from;
+};
 
 const getEmailDiagnostics = () => ({
     smtpHost: SMTP_HOST || "",
@@ -22,6 +41,7 @@ const getEmailDiagnostics = () => ({
     configured: isConfigured(),
     secure: Number(SMTP_PORT) === 465,
     forceIpv4: shouldForceIpv4(),
+    timeouts: smtpTimeouts(),
     nodeVersion: process.version
 });
 
@@ -44,16 +64,56 @@ const formatDate = (date) => {
     });
 };
 
+const isOverdue = (bill) => {
+    if (!bill || !bill.due_date) return false;
+
+    const dueDate = new Date(bill.due_date);
+    const today = new Date();
+
+    dueDate.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
+};
+
 const getTransporter = () => nodemailer.createTransport({
     host: SMTP_HOST,
     port: Number(SMTP_PORT),
     secure: Number(SMTP_PORT) === 465,
     ...(shouldForceIpv4() ? { family: 4 } : {}),
+    ...smtpTimeouts(),
+    tls: {
+        servername: SMTP_HOST
+    },
     auth: {
         user: SMTP_USER,
         pass: SMTP_PASS
     }
 });
+
+const normalizeEmailError = (err) => {
+    const message = String(err && err.message ? err.message : "");
+    const code = err && err.code;
+    const responseCode = err && err.responseCode;
+    let friendlyMessage = message || "Email send failed";
+
+    if (code === "EAUTH" || responseCode === 535) {
+        friendlyMessage = "Gmail SMTP authentication failed. Use the Gmail address in SMTP_USER and a 16-character Google App Password in SMTP_PASS.";
+    } else if (code === "ETIMEDOUT" || message.toLowerCase().includes("timeout")) {
+        friendlyMessage = "SMTP connection timed out. Check whether the server/network allows outbound SMTP on port 587 or 465.";
+    } else if (code === "ESOCKET" || code === "ECONNECTION" || code === "EACCES") {
+        friendlyMessage = "SMTP connection failed. Check SMTP_HOST, SMTP_PORT, firewall/network rules, and whether your host blocks outbound SMTP.";
+    }
+
+    const normalized = new Error(friendlyMessage);
+    normalized.originalMessage = message;
+    normalized.code = code;
+    normalized.command = err && err.command;
+    normalized.response = err && err.response;
+    normalized.responseCode = responseCode;
+    normalized.stack = err && err.stack ? err.stack : normalized.stack;
+    return normalized;
+};
 
 const sendEmail = async ({ to, subject, text, html }) => {
     if (!isConfigured()) {
@@ -67,7 +127,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
     try {
         const result = await getTransporter().sendMail({
-            from: SMTP_FROM || SMTP_USER,
+            from: getFromAddress(),
             to,
             subject,
             text,
@@ -83,25 +143,37 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
         return result;
     } catch (err) {
-        console.error("Email send failed:", err.message);
+        const normalized = normalizeEmailError(err);
+        console.error("Email send failed:", normalized.message);
+        if (normalized.originalMessage && normalized.originalMessage !== normalized.message) {
+            console.error("Original email error:", normalized.originalMessage);
+        }
         console.error(err);
-        throw err;
+        throw normalized;
     }
 };
 
 const sendDueDateEmail = (customer, bill) => {
     const downloadUrl = getBillDownloadUrl(bill.id);
     const supportLine = "If you have already paid, please ignore this reminder or contact NetWave support with your receipt details.";
+    const overdue = isOverdue(bill);
+    const subject = overdue ? "NetWave overdue bill reminder" : "NetWave bill payment reminder";
+    const textLine = overdue
+        ? `your NetWave broadband bill of Rs. ${bill.amount} was due on ${formatDate(bill.due_date)} and is still pending. Please pay now to avoid service interruption.`
+        : `your NetWave broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date to keep your service active.`;
+    const htmlLine = overdue
+        ? `Your NetWave broadband bill of <strong>Rs. ${bill.amount}</strong> was due on <strong>${formatDate(bill.due_date)}</strong> and is still pending.`
+        : `Your NetWave broadband bill of <strong>Rs. ${bill.amount}</strong> is pending.`;
 
     return sendEmail({
         to: customer.email,
-        subject: "NetWave bill payment reminder",
-        text: `Hi ${customer.name || "Customer"}, your NetWave broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date to keep your service active. ${supportLine} Download bill: ${downloadUrl}`,
+        subject,
+        text: `Hi ${customer.name || "Customer"}, ${textLine} ${supportLine} Download bill: ${downloadUrl}`,
         html: `
             <p>Hi ${customer.name || "Customer"},</p>
-            <p>Your NetWave broadband bill of <strong>Rs. ${bill.amount}</strong> is pending.</p>
-            <p><strong>Last date for payment: ${formatDate(bill.due_date)}</strong></p>
-            <p>Please pay before this date to keep your service active.</p>
+            <p>${htmlLine}</p>
+            <p><strong>${overdue ? "Please pay now to avoid service interruption." : `Last date for payment: ${formatDate(bill.due_date)}`}</strong></p>
+            ${overdue ? "" : "<p>Please pay before this date to keep your service active.</p>"}
             <p>${supportLine}</p>
             <p><a href="${downloadUrl}">Download your bill</a></p>
         `
@@ -157,5 +229,6 @@ module.exports = {
     sendCustomerApprovedEmail,
     sendCustomerRejectedEmail,
     getEmailDiagnostics,
-    logEmailDiagnostics
+    logEmailDiagnostics,
+    normalizeEmailError
 };
