@@ -5,6 +5,10 @@ const SMS_API_KEY = process.env.SMS_API_KEY;
 const SMS_FROM = process.env.SMS_FROM;
 const MSG91_AUTHKEY = firstValue(process.env.MSG91_AUTHKEY, process.env.MSG91_SMS_AUTHKEY);
 const MSG91_FLOW_ID = firstValue(process.env.MSG91_FLOW_ID, process.env.MSG91_SMS_FLOW_ID, process.env.MSG91_TEMPLATE_ID);
+const MSG91_FLOW_ID_BILL_DUE = firstValue(process.env.MSG91_FLOW_ID_BILL_DUE, process.env.MSG91_FLOW_ID_DUE, MSG91_FLOW_ID);
+const MSG91_FLOW_ID_PAYMENT_RECEIVED = firstValue(process.env.MSG91_FLOW_ID_PAYMENT_RECEIVED, process.env.MSG91_FLOW_ID_PAID, MSG91_FLOW_ID);
+const MSG91_FLOW_ID_ACCOUNT_APPROVED = firstValue(process.env.MSG91_FLOW_ID_ACCOUNT_APPROVED, process.env.MSG91_FLOW_ID_APPROVED, MSG91_FLOW_ID);
+const MSG91_FLOW_ID_ACCOUNT_REJECTED = firstValue(process.env.MSG91_FLOW_ID_ACCOUNT_REJECTED, process.env.MSG91_FLOW_ID_REJECTED, MSG91_FLOW_ID);
 const MSG91_SENDER = firstValue(process.env.MSG91_SENDER, process.env.MSG91_SMS_SENDER, process.env.MSG91_SENDER_ID);
 const MSG91_MESSAGE_VAR = process.env.MSG91_MESSAGE_VAR || "message";
 const MSG91_ROUTE = process.env.MSG91_ROUTE;
@@ -17,13 +21,22 @@ const hasRealValue = (value) => {
     return Boolean(text && !text.startsWith("your-"));
 };
 
-const isMsg91Configured = () => Boolean(hasRealValue(MSG91_AUTHKEY) && hasRealValue(MSG91_FLOW_ID));
+const getMsg91FlowIds = () => ({
+    billDue: MSG91_FLOW_ID_BILL_DUE || "",
+    paymentReceived: MSG91_FLOW_ID_PAYMENT_RECEIVED || "",
+    accountApproved: MSG91_FLOW_ID_ACCOUNT_APPROVED || "",
+    accountRejected: MSG91_FLOW_ID_ACCOUNT_REJECTED || ""
+});
+
+const hasAnyMsg91FlowId = () => Object.values(getMsg91FlowIds()).some(hasRealValue);
+
+const isMsg91Configured = () => Boolean(hasRealValue(MSG91_AUTHKEY) && hasAnyMsg91FlowId());
 
 const isConfigured = () => Boolean(hasRealValue(SMS_API_URL) || isMsg91Configured());
 
 const getMissingMsg91Fields = () => [
     ["MSG91_AUTHKEY", MSG91_AUTHKEY],
-    ["MSG91_FLOW_ID", MSG91_FLOW_ID]
+    ["MSG91_FLOW_ID or notification-specific Flow IDs", hasAnyMsg91FlowId() ? "configured" : ""]
 ]
     .filter(([, value]) => !hasRealValue(value))
     .map(([key]) => key);
@@ -54,6 +67,7 @@ const isE164Phone = (phone) => /^\+[1-9]\d{7,14}$/.test(String(phone || ""));
 const getMsg91Diagnostics = () => ({
     authkeyPresent: Boolean(MSG91_AUTHKEY),
     flowId: MSG91_FLOW_ID || "",
+    flowIds: getMsg91FlowIds(),
     sender: MSG91_SENDER || "",
     route: MSG91_ROUTE || "",
     apiUrl: MSG91_SMS_API_URL,
@@ -66,6 +80,7 @@ const getMsg91Diagnostics = () => ({
 const logMsg91Diagnostics = () => {
     console.log("MSG91_AUTHKEY present:", Boolean(MSG91_AUTHKEY));
     console.log("MSG91_FLOW_ID:", MSG91_FLOW_ID);
+    console.log("MSG91 notification flow IDs:", getMsg91Diagnostics().flowIds);
     console.log("MSG91_SENDER:", MSG91_SENDER);
     console.log("MSG91_ROUTE:", MSG91_ROUTE);
     console.log("MSG91_MESSAGE_VAR:", process.env.MSG91_MESSAGE_VAR || "message");
@@ -132,8 +147,16 @@ const rememberSmsRequest = (phone, message) => {
     }
 };
 
-const sendMsg91Sms = async (phone, message, variables = {}) => {
+const sendMsg91Sms = async (phone, message, variables = {}, options = {}) => {
     const to = formatPhone(phone);
+    const flowId = firstValue(
+        options.flowId,
+        MSG91_FLOW_ID,
+        MSG91_FLOW_ID_BILL_DUE,
+        MSG91_FLOW_ID_PAYMENT_RECEIVED,
+        MSG91_FLOW_ID_ACCOUNT_APPROVED,
+        MSG91_FLOW_ID_ACCOUNT_REJECTED
+    );
 
     if (!to) {
         return { skipped: true, reason: "Customer phone missing" };
@@ -143,6 +166,13 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
         return {
             skipped: true,
             reason: `MSG91 SMS not configured. Missing: ${getMissingMsg91Fields().join(", ")}`
+        };
+    }
+
+    if (!hasRealValue(flowId)) {
+        return {
+            skipped: true,
+            reason: "MSG91 SMS Flow ID missing for this notification type"
         };
     }
 
@@ -156,7 +186,7 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
     };
 
     const body = {
-        flow_id: MSG91_FLOW_ID,
+        flow_id: flowId,
         recipients: [recipient],
         ...(MSG91_SENDER ? { sender: MSG91_SENDER } : {}),
         ...(MSG91_ROUTE ? { route: MSG91_ROUTE } : {})
@@ -180,6 +210,7 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
             statusText: response.statusText,
             request: {
                 flowId: MSG91_FLOW_ID,
+                selectedFlowId: flowId,
                 sender: MSG91_SENDER || undefined,
                 route: MSG91_ROUTE || undefined,
                 to,
@@ -197,7 +228,7 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
 
     console.log("MSG91 SMS sent:", {
         to,
-        flowId: MSG91_FLOW_ID,
+        flowId,
         requestId: data.request_id,
         response: data
     });
@@ -205,7 +236,7 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
     return data;
 };
 
-const sendSms = async (phone, message, variables = {}) => {
+const sendSms = async (phone, message, variables = {}, options = {}) => {
     if (!isConfigured()) {
         console.log("SMS not configured. Skipped SMS:", message);
         return { skipped: true, reason: "SMS not configured" };
@@ -221,7 +252,7 @@ const sendSms = async (phone, message, variables = {}) => {
     }
 
     if (isMsg91Configured()) {
-        const result = await sendMsg91Sms(phone, message, variables);
+        const result = await sendMsg91Sms(phone, message, variables, options);
         rememberSmsRequest(phone, message);
         return result;
     }
@@ -267,6 +298,9 @@ const sendDueDateSms = (customer, bill) => sendSms(
         amount: String(bill.amount),
         due_date: formatDate(bill.due_date),
         bill_id: String(bill.id || "")
+    },
+    {
+        flowId: MSG91_FLOW_ID_BILL_DUE
     }
 );
 
@@ -278,6 +312,9 @@ const sendPaidSms = (customer, bill) => sendSms(
         customer_name: customer.name || "Customer",
         amount: String(bill.amount),
         bill_id: String(bill.id || "")
+    },
+    {
+        flowId: MSG91_FLOW_ID_PAYMENT_RECEIVED
     }
 );
 
@@ -287,6 +324,9 @@ const sendCustomerApprovedSms = (customer) => sendSms(
     {
         name: customer.name || "Customer",
         customer_name: customer.name || "Customer"
+    },
+    {
+        flowId: MSG91_FLOW_ID_ACCOUNT_APPROVED
     }
 );
 
@@ -296,6 +336,9 @@ const sendCustomerRejectedSms = (customer) => sendSms(
     {
         name: customer.name || "Customer",
         customer_name: customer.name || "Customer"
+    },
+    {
+        flowId: MSG91_FLOW_ID_ACCOUNT_REJECTED
     }
 );
 
