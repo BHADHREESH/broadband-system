@@ -24,6 +24,14 @@ const isMsg91Configured = () => Boolean(hasRealValue(MSG91_WHATSAPP_AUTHKEY) && 
 const isTwilioConfigured = () => Boolean(hasRealValue(TWILIO_ACCOUNT_SID) && hasRealValue(TWILIO_AUTH_TOKEN) && hasRealValue(TWILIO_WHATSAPP_FROM));
 const isConfigured = () => Boolean(isMsg91Configured() || isMetaConfigured() || isTwilioConfigured());
 
+const getMissingMsg91WhatsappFields = () => [
+    ["MSG91_WHATSAPP_AUTHKEY", MSG91_WHATSAPP_AUTHKEY],
+    ["MSG91_WHATSAPP_INTEGRATED_NUMBER", MSG91_WHATSAPP_INTEGRATED_NUMBER],
+    ["MSG91_WHATSAPP_TEMPLATE_NAMESPACE", MSG91_WHATSAPP_TEMPLATE_NAMESPACE]
+]
+    .filter(([, value]) => !hasRealValue(value))
+    .map(([key]) => key);
+
 const getWhatsappDiagnostics = () => ({
     provider: isMsg91Configured() ? "msg91" : isMetaConfigured() ? "meta" : isTwilioConfigured() ? "twilio" : "none",
     configured: isConfigured(),
@@ -32,6 +40,7 @@ const getWhatsappDiagnostics = () => ({
         integratedNumber: MSG91_WHATSAPP_INTEGRATED_NUMBER || "",
         templateNamespacePresent: Boolean(MSG91_WHATSAPP_TEMPLATE_NAMESPACE),
         apiUrl: MSG91_WHATSAPP_API_URL,
+        missingFields: getMissingMsg91WhatsappFields(),
         configured: isMsg91Configured()
     },
     meta: {
@@ -234,7 +243,10 @@ const buildMsg91Components = (parameters) => {
 
 const sendMsg91WhatsappTemplate = async (phone, templateName, parameters) => {
     if (!isMsg91Configured()) {
-        return { skipped: true, reason: "MSG91 WhatsApp not configured" };
+        return {
+            skipped: true,
+            reason: `MSG91 WhatsApp not configured. Missing: ${getMissingMsg91WhatsappFields().join(", ")}`
+        };
     }
 
     const body = {

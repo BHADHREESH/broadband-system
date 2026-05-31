@@ -24,6 +24,7 @@ const {
 } = require("./services/emailService");
 const {
     sendDueDateMessage,
+    sendMsg91WhatsappTemplate,
     getWhatsappDiagnostics
 } = require("./services/whatsappService");
 const { notFound, errorHandler } = require("./middleware/errorHandler");
@@ -305,8 +306,8 @@ app.get("/test-msg91", async (req, res) => {
             bill_id: "TEST"
         });
 
-        return res.json({
-            success: true,
+        return res.status(result && result.skipped ? 503 : 200).json({
+            success: !(result && result.skipped),
             message: result && result.skipped ? "MSG91 SMS skipped" : "MSG91 SMS request sent",
             data: {
                 result,
@@ -323,6 +324,75 @@ app.get("/test-msg91", async (req, res) => {
             data: {
                 sms: diagnostics,
                 msg91Error: {
+                    status: err.status,
+                    statusText: err.statusText,
+                    response: err.response
+                }
+            }
+        });
+    }
+});
+
+app.get("/test-msg91-whatsapp-bill-due", async (req, res) => {
+    const to = formatTwilioPhone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
+    const amount = String(req.query.amount || "799");
+    const dueDate = new Date(req.query.due_date || Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const templateName = process.env.WHATSAPP_TEMPLATE_BILL_DUE || "bill_due_reminder";
+    const diagnostics = getWhatsappDiagnostics();
+
+    console.log("/test-msg91-whatsapp-bill-due requested:", {
+        to,
+        template: templateName,
+        whatsapp: diagnostics
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing WhatsApp destination. Use /test-msg91-whatsapp-bill-due?to=+91XXXXXXXXXX or set TEST_WHATSAPP_TO.",
+            data: {
+                whatsapp: diagnostics
+            }
+        });
+    }
+
+    if (!isE164Phone(to)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
+            data: {
+                to,
+                whatsapp: diagnostics
+            }
+        });
+    }
+
+    try {
+        const result = await sendMsg91WhatsappTemplate(to, templateName, [
+            dueDate.toLocaleDateString("en-IN", { month: "long", year: "numeric" }),
+            amount,
+            dueDate.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+        ]);
+
+        return res.status(result && result.skipped ? 503 : 200).json({
+            success: !(result && result.skipped),
+            message: result && result.skipped ? "MSG91 WhatsApp skipped" : "MSG91 WhatsApp bill due template request sent",
+            data: {
+                result,
+                template: templateName,
+                whatsapp: diagnostics
+            }
+        });
+    } catch (err) {
+        console.error("Test MSG91 WhatsApp bill due failed:", err.message);
+        console.error(err);
+
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err.message || "Test MSG91 WhatsApp bill due failed",
+            data: {
+                whatsapp: diagnostics,
+                msg91WhatsappError: {
                     status: err.status,
                     statusText: err.statusText,
                     response: err.response

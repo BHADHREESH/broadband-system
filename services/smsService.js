@@ -42,6 +42,13 @@ const isMsg91Configured = () => Boolean(hasRealValue(MSG91_AUTHKEY) && hasRealVa
 
 const isConfigured = () => Boolean(hasRealValue(SMS_API_URL) || isMsg91Configured() || isTwilioConfigured());
 
+const getMissingMsg91Fields = () => [
+    ["MSG91_AUTHKEY", MSG91_AUTHKEY],
+    ["MSG91_FLOW_ID", MSG91_FLOW_ID]
+]
+    .filter(([, value]) => !hasRealValue(value))
+    .map(([key]) => key);
+
 const formatPhone = (phone) => {
     if (!phone) return "";
 
@@ -80,6 +87,7 @@ const getMsg91Diagnostics = () => ({
     route: MSG91_ROUTE || "",
     apiUrl: MSG91_SMS_API_URL,
     messageVariable: MSG91_MESSAGE_VAR,
+    missingFields: getMissingMsg91Fields(),
     configured: isMsg91Configured(),
     nodeVersion: process.version
 });
@@ -245,7 +253,10 @@ const sendMsg91Sms = async (phone, message, variables = {}) => {
     }
 
     if (!isMsg91Configured()) {
-        return { skipped: true, reason: "MSG91 SMS not configured" };
+        return {
+            skipped: true,
+            reason: `MSG91 SMS not configured. Missing: ${getMissingMsg91Fields().join(", ")}`
+        };
     }
 
     const recipient = {
