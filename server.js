@@ -23,6 +23,7 @@ const {
 } = require("./services/emailService");
 const {
     sendDueDateMessage,
+    sendPaidMessage,
     sendMsg91WhatsappTemplate,
     getWhatsappDiagnostics
 } = require("./services/whatsappService");
@@ -400,6 +401,78 @@ app.get("/test-msg91-whatsapp-bill-due", async (req, res) => {
     }
 });
 
+app.get("/test-msg91-whatsapp-payment-received", async (req, res) => {
+    const to = formatE164Phone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
+    const amount = String(req.query.amount || "799");
+    const billId = String(req.query.bill_id || "TEST");
+    const templateName = process.env.WHATSAPP_TEMPLATE_PAYMENT_RECEIVED || "payment_received";
+    const diagnostics = getWhatsappDiagnostics();
+
+    console.log("/test-msg91-whatsapp-payment-received requested:", {
+        to,
+        template: templateName,
+        whatsapp: diagnostics
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing WhatsApp destination. Use /test-msg91-whatsapp-payment-received?to=+91XXXXXXXXXX or set TEST_WHATSAPP_TO.",
+            data: {
+                whatsapp: diagnostics
+            }
+        });
+    }
+
+    if (!isE164Phone(to)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
+            data: {
+                to,
+                whatsapp: diagnostics
+            }
+        });
+    }
+
+    try {
+        const result = await sendMsg91WhatsappTemplate(to, templateName, [
+            amount,
+            billId
+        ]);
+
+        return res.status(result && result.skipped ? 503 : 200).json({
+            success: !(result && result.skipped),
+            message: result && result.skipped ? "MSG91 WhatsApp skipped" : "MSG91 WhatsApp payment received template request sent",
+            data: {
+                result,
+                template: templateName,
+                parameters: {
+                    amount,
+                    bill_id: billId
+                },
+                whatsapp: diagnostics
+            }
+        });
+    } catch (err) {
+        console.error("Test MSG91 WhatsApp payment received failed:", err.message);
+        console.error(err);
+
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err.message || "Test MSG91 WhatsApp payment received failed",
+            data: {
+                whatsapp: diagnostics,
+                msg91WhatsappError: {
+                    status: err.status,
+                    statusText: err.statusText,
+                    response: err.response
+                }
+            }
+        });
+    }
+});
+
 app.get("/test-whatsapp-bill-due", async (req, res) => {
     const to = formatE164Phone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
     const amount = String(req.query.amount || "799");
@@ -455,6 +528,75 @@ app.get("/test-whatsapp-bill-due", async (req, res) => {
         return res.status(err.status || 500).json({
             success: false,
             message: err.message || "Test WhatsApp bill due failed",
+            data: {
+                whatsappError: {
+                    status: err.status,
+                    statusText: err.statusText,
+                    response: err.response
+                }
+            }
+        });
+    }
+});
+
+app.get("/test-whatsapp-payment-received", async (req, res) => {
+    const to = formatE164Phone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
+    const amount = String(req.query.amount || "799");
+    const billId = String(req.query.bill_id || "TEST");
+
+    console.log("/test-whatsapp-payment-received requested:", {
+        to,
+        template: process.env.WHATSAPP_TEMPLATE_PAYMENT_RECEIVED || "payment_received",
+        language: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en"
+    });
+
+    if (!to) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing WhatsApp destination. Use /test-whatsapp-payment-received?to=+91XXXXXXXXXX or set TEST_WHATSAPP_TO."
+        });
+    }
+
+    if (!isE164Phone(to)) {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid phone number. Use E.164 format, for example +91XXXXXXXXXX.",
+            data: { to }
+        });
+    }
+
+    try {
+        const result = await sendPaidMessage(
+            {
+                name: "Customer",
+                phone: to
+            },
+            {
+                id: billId,
+                amount
+            }
+        );
+
+        return res.json({
+            success: true,
+            message: result && result.skipped ? "WhatsApp payment received template skipped" : "WhatsApp payment received template request sent",
+            data: {
+                result,
+                template: process.env.WHATSAPP_TEMPLATE_PAYMENT_RECEIVED || "payment_received",
+                language: process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en",
+                parameters: {
+                    amount,
+                    bill_id: billId
+                }
+            }
+        });
+    } catch (err) {
+        console.error("Test WhatsApp payment received failed:", err.message);
+        console.error(err);
+
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err.message || "Test WhatsApp payment received failed",
             data: {
                 whatsappError: {
                     status: err.status,

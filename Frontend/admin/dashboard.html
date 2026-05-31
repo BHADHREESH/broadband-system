@@ -1079,7 +1079,7 @@ function notificationDetails(notification) {
     const skipped = channelList(notification.skipped_channels);
     const message = String(notification.message || "").trim();
 
-    if (sent) parts.push(`${notificationPurpose(notification.notification_type)} was sent through ${sent}.`);
+    if (sent) parts.push(`${notificationPurpose(notification.notification_type)} request was accepted through ${sent}.`);
     if (failed) parts.push(`${failed} failed. Check provider settings or balance.`);
     if (skipped) parts.push(`${skipped} was skipped because it is not configured or was already sent recently.`);
     if (!sent && !failed && !skipped) parts.push(`No ${purpose} was delivered.`);
