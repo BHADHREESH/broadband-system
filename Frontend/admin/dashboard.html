@@ -1083,7 +1083,7 @@ function notificationDetails(notification) {
     if (failed) parts.push(`${failed} failed. Check provider settings or balance.`);
     if (skipped) parts.push(`${skipped} was skipped because it is not configured or was already sent recently.`);
     if (!sent && !failed && !skipped) parts.push(`No ${purpose} was delivered.`);
-    if (message && failed) parts.push(`Reason: ${message}`);
+    if (message && (failed || skipped)) parts.push(`Issue: ${message}`);
 
     return escapeHtml(parts.join(" "));
 }
@@ -1671,8 +1671,13 @@ async function sendBillNotification(id, notification_type) {
         const sentChannels = results
             .filter((result) => result.status === "sent")
             .map((result) => result.channel.toUpperCase());
+        const issueDetails = failed.concat(skipped)
+            .map((item) => `${item.channel.toUpperCase()}: ${item.message || item.status}`)
+            .join(" | ");
 
-        if (summary.hasSent || sentChannels.length > 0) {
+        if ((summary.hasSent || sentChannels.length > 0) && issueDetails) {
+            notify(`${sentChannels.join(", ")} sent. ${issueDetails}`);
+        } else if (summary.hasSent || sentChannels.length > 0) {
             notify(`${sentChannels.join(", ")} sent`, "success");
         } else if (failed.length > 0) {
             notify(failed.map((item) => `${item.channel.toUpperCase()}: ${item.message || "failed"}`).join(" | "));

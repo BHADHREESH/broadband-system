@@ -56,7 +56,13 @@ exports.getNotificationLogs = async (req, res) => {
                     WHEN SUM(notification_logs.status = 'failed') > 0 THEN 'failed'
                     ELSE 'skipped'
                 END AS status,
-                GROUP_CONCAT(DISTINCT NULLIF(notification_logs.message, '') ORDER BY notification_logs.message SEPARATOR ' | ') AS message
+                GROUP_CONCAT(
+                    DISTINCT CASE
+                        WHEN notification_logs.status IN ('failed', 'skipped')
+                        THEN NULLIF(notification_logs.message, '')
+                    END
+                    ORDER BY notification_logs.channel SEPARATOR ' | '
+                ) AS message
          FROM notification_logs
          LEFT JOIN customers ON notification_logs.customer_id = customers.id
          GROUP BY notification_logs.bill_id,

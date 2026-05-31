@@ -106,14 +106,15 @@ const sendAndLog = async (promise, customer, bill, channel, type) => {
     try {
         const result = await promise;
         const status = result && result.skipped ? "skipped" : "sent";
-        const message = getProviderMessage(result);
+        const providerMessage = getProviderMessage(result);
+        const message = status === "skipped" ? providerMessage : "";
 
         if (status === "skipped") {
             console.log(`${channel} ${type} notification skipped:`, message);
         }
 
         await recordNotification(customer, bill, channel, type, status, message);
-        return { channel, type, status, message };
+        return { channel, type, status, message, providerMessage };
     } catch (err) {
         logFailure(`${channel} ${type}`, err);
         await recordNotification(customer, bill, channel, type, "failed", err.message);
