@@ -15,14 +15,10 @@ const MSG91_WHATSAPP_AUTHKEY = firstValue(process.env.MSG91_WHATSAPP_AUTHKEY, pr
 const MSG91_WHATSAPP_INTEGRATED_NUMBER = firstValue(process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER, process.env.MSG91_INTEGRATED_NUMBER);
 const MSG91_WHATSAPP_TEMPLATE_NAMESPACE = firstValue(process.env.MSG91_WHATSAPP_TEMPLATE_NAMESPACE, process.env.MSG91_TEMPLATE_NAMESPACE);
 const MSG91_WHATSAPP_API_URL = process.env.MSG91_WHATSAPP_API_URL || "https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM;
 
 const isMetaConfigured = () => Boolean(hasRealValue(WHATSAPP_PHONE_NUMBER_ID) && hasRealValue(WHATSAPP_ACCESS_TOKEN));
 const isMsg91Configured = () => Boolean(hasRealValue(MSG91_WHATSAPP_AUTHKEY) && hasRealValue(MSG91_WHATSAPP_INTEGRATED_NUMBER) && hasRealValue(MSG91_WHATSAPP_TEMPLATE_NAMESPACE));
-const isTwilioConfigured = () => Boolean(hasRealValue(TWILIO_ACCOUNT_SID) && hasRealValue(TWILIO_AUTH_TOKEN) && hasRealValue(TWILIO_WHATSAPP_FROM));
-const isConfigured = () => Boolean(isMsg91Configured() || isMetaConfigured() || isTwilioConfigured());
+const isConfigured = () => Boolean(isMsg91Configured() || isMetaConfigured());
 
 const getMissingMsg91WhatsappFields = () => [
     ["MSG91_WHATSAPP_AUTHKEY", MSG91_WHATSAPP_AUTHKEY],
@@ -33,7 +29,7 @@ const getMissingMsg91WhatsappFields = () => [
     .map(([key]) => key);
 
 const getWhatsappDiagnostics = () => ({
-    provider: isMsg91Configured() ? "msg91" : isMetaConfigured() ? "meta" : isTwilioConfigured() ? "twilio" : "none",
+    provider: isMsg91Configured() ? "msg91" : isMetaConfigured() ? "meta" : "none",
     configured: isConfigured(),
     msg91: {
         authkeyPresent: Boolean(MSG91_WHATSAPP_AUTHKEY),
@@ -47,12 +43,6 @@ const getWhatsappDiagnostics = () => ({
         phoneNumberId: WHATSAPP_PHONE_NUMBER_ID || "",
         accessTokenPresent: Boolean(WHATSAPP_ACCESS_TOKEN),
         configured: isMetaConfigured()
-    },
-    twilio: {
-        accountSid: TWILIO_ACCOUNT_SID || "",
-        authTokenPresent: Boolean(TWILIO_AUTH_TOKEN),
-        whatsappFrom: TWILIO_WHATSAPP_FROM || "",
-        configured: isTwilioConfigured()
     },
     templates: {
         language: WHATSAPP_TEMPLATE_LANGUAGE,
@@ -94,18 +84,6 @@ const formatMonth = (date) => {
     });
 };
 
-const isOverdue = (bill) => {
-    if (!bill || !bill.due_date) return false;
-
-    const dueDate = new Date(bill.due_date);
-    const today = new Date();
-
-    dueDate.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-
-    return dueDate < today;
-};
-
 const sendTextMessage = async (phone, body) => {
     if (!isConfigured()) {
         console.log("WhatsApp not configured. Skipped message:", body);
@@ -116,10 +94,6 @@ const sendTextMessage = async (phone, body) => {
 
     if (!to) {
         return { skipped: true, reason: "Customer phone missing" };
-    }
-
-    if (isTwilioConfigured() && !isMetaConfigured()) {
-        return sendTwilioWhatsapp(to, body);
     }
 
     const url = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${WHATSAPP_PHONE_NUMBER_ID}/messages`;
@@ -155,7 +129,7 @@ const buildTextParameter = (text) => ({
     text: String(text || "")
 });
 
-const sendTemplateMessage = async (phone, templateName, parameters, fallbackBody) => {
+const sendTemplateMessage = async (phone, templateName, parameters) => {
     if (!isConfigured()) {
         console.log("WhatsApp not configured. Skipped template:", templateName);
         return { skipped: true, reason: "WhatsApp not configured" };
@@ -165,10 +139,6 @@ const sendTemplateMessage = async (phone, templateName, parameters, fallbackBody
 
     if (!to) {
         return { skipped: true, reason: "Customer phone missing" };
-    }
-
-    if (isTwilioConfigured() && !isMetaConfigured()) {
-        return sendTwilioWhatsapp(to, fallbackBody);
     }
 
     if (isMsg91Configured()) {
@@ -313,76 +283,31 @@ const sendMsg91WhatsappTemplate = async (phone, templateName, parameters) => {
     return data;
 };
 
-const formatTwilioWhatsappPhone = (phone) => {
-    const value = String(phone || "").trim();
-    return value.startsWith("whatsapp:") ? value : `whatsapp:+${formatPhone(value)}`;
-};
-
-const sendTwilioWhatsapp = async (phone, body) => {
-    const params = new URLSearchParams({
-        From: formatTwilioWhatsappPhone(TWILIO_WHATSAPP_FROM),
-        To: formatTwilioWhatsappPhone(phone),
-        Body: body
-    });
-
-    const credentials = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
-    const response = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Basic ${credentials}`,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: params.toString()
-        }
-    );
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        throw new Error(data.message || data.error_message || "Twilio WhatsApp message failed");
-    }
-
-    return data;
-};
-
 const sendDueDateMessage = (customer, bill) => {
-    const overdue = isOverdue(bill);
-    const body = overdue
-        ? `Hi ${customer.name || "Customer"}, your NetWave broadband bill of Rs. ${bill.amount} was due on ${formatDate(bill.due_date)} and is still pending. Please pay now to avoid service interruption.`
-        : `Hi ${customer.name || "Customer"}, your NetWave broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date to keep your service active.`;
-
     return sendTemplateMessage(customer.phone, WHATSAPP_TEMPLATE_BILL_DUE, [
         formatMonth(bill.due_date),
         String(bill.amount || ""),
         formatDate(bill.due_date)
-    ], body);
+    ]);
 };
 
 const sendPaidMessage = (customer, bill) => {
-    const body = `Hi ${customer.name || "Customer"}, payment received. We received Rs. ${bill.amount} for your NetWave broadband bill. Bill ID: ${bill.id}. Thank you.`;
-
     return sendTemplateMessage(customer.phone, WHATSAPP_TEMPLATE_PAYMENT_RECEIVED, [
         String(bill.amount || ""),
         String(bill.id || "")
-    ], body);
+    ]);
 };
 
 const sendCustomerApprovedMessage = (customer) => {
-    const body = `Hi ${customer.name || "Customer"}, your NetWave broadband account is approved. You can now log in and use your customer dashboard.`;
-
     return sendTemplateMessage(customer.phone, WHATSAPP_TEMPLATE_ACCOUNT_APPROVED, [
         customer.name || "Customer"
-    ], body);
+    ]);
 };
 
 const sendCustomerRejectedMessage = (customer) => {
-    const body = `Hi ${customer.name || "Customer"}, your NetWave broadband registration could not be approved. Please contact support for help.`;
-
     return sendTemplateMessage(customer.phone, WHATSAPP_TEMPLATE_ACCOUNT_REJECTED, [
         customer.name || "Customer"
-    ], body);
+    ]);
 };
 
 module.exports = {

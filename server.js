@@ -12,9 +12,8 @@ const {
     sendSms,
     sendMsg91Sms,
     getSmsDiagnostics,
-    logTwilioDiagnostics,
     logMsg91Diagnostics,
-    formatTwilioPhone,
+    formatE164Phone,
     isE164Phone
 } = require("./services/smsService");
 const {
@@ -165,7 +164,6 @@ app.get("/api/health", (req, res) => {
                 email: Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS),
                 whatsapp: getWhatsappDiagnostics().configured,
                 sms: getSmsDiagnostics().msg91.configured
-                    || getSmsDiagnostics().twilio.configured
                     || getSmsDiagnostics().genericSmsApiConfigured
             }
         }
@@ -207,7 +205,7 @@ app.get("/api/health/notifications", (req, res) => {
 });
 
 app.get("/test-sms", async (req, res) => {
-    const to = formatTwilioPhone(req.query.to || process.env.TEST_SMS_TO);
+    const to = formatE164Phone(req.query.to || process.env.TEST_SMS_TO);
     const diagnostics = getSmsDiagnostics();
 
     console.log("/test-sms requested:", {
@@ -268,7 +266,7 @@ app.get("/test-sms", async (req, res) => {
 });
 
 app.get("/test-msg91", async (req, res) => {
-    const to = formatTwilioPhone(req.query.to || process.env.TEST_SMS_TO);
+    const to = formatE164Phone(req.query.to || process.env.TEST_SMS_TO);
     const diagnostics = getSmsDiagnostics();
 
     console.log("/test-msg91 requested:", {
@@ -334,7 +332,7 @@ app.get("/test-msg91", async (req, res) => {
 });
 
 app.get("/test-msg91-whatsapp-bill-due", async (req, res) => {
-    const to = formatTwilioPhone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
+    const to = formatE164Phone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
     const amount = String(req.query.amount || "799");
     const dueDate = new Date(req.query.due_date || Date.now() + 7 * 24 * 60 * 60 * 1000);
     const templateName = process.env.WHATSAPP_TEMPLATE_BILL_DUE || "bill_due_reminder";
@@ -403,7 +401,7 @@ app.get("/test-msg91-whatsapp-bill-due", async (req, res) => {
 });
 
 app.get("/test-whatsapp-bill-due", async (req, res) => {
-    const to = formatTwilioPhone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
+    const to = formatE164Phone(req.query.to || process.env.TEST_WHATSAPP_TO || process.env.TEST_SMS_TO);
     const amount = String(req.query.amount || "799");
     const dueDate = req.query.due_date || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -554,7 +552,6 @@ app.listen(env.port, () => {
     logger.info(`Server running on port ${env.port}`);
     logEmailDiagnostics();
     logMsg91Diagnostics();
-    logTwilioDiagnostics();
     console.log("Node.js version:", process.version);
     console.log("CommonJS runtime:", true);
     console.log("dotenv loaded before SMS service:", Boolean(env.jwtSecret));

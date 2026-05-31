@@ -9,10 +9,6 @@ const MSG91_SENDER = firstValue(process.env.MSG91_SENDER, process.env.MSG91_SMS_
 const MSG91_MESSAGE_VAR = process.env.MSG91_MESSAGE_VAR || "message";
 const MSG91_ROUTE = process.env.MSG91_ROUTE;
 const MSG91_SMS_API_URL = process.env.MSG91_SMS_API_URL || "https://api.msg91.com/api/v5/flow/";
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_FROM_NUMBER = process.env.TWILIO_FROM_NUMBER;
-const TWILIO_MESSAGING_SERVICE_SID = process.env.TWILIO_MESSAGING_SERVICE_SID;
 const SMS_DUPLICATE_WINDOW_MS = Number(process.env.SMS_DUPLICATE_WINDOW_MS || 12000);
 const recentSmsRequests = new Map();
 
@@ -21,26 +17,9 @@ const hasRealValue = (value) => {
     return Boolean(text && !text.startsWith("your-"));
 };
 
-class TwilioSmsError extends Error {
-    constructor(message, details) {
-        super(message);
-        this.name = "TwilioSmsError";
-        this.status = details.status;
-        this.statusText = details.statusText;
-        this.response = details.response;
-        this.request = details.request;
-    }
-}
-
-const isTwilioConfigured = () => Boolean(
-    hasRealValue(TWILIO_ACCOUNT_SID)
-    && hasRealValue(TWILIO_AUTH_TOKEN)
-    && (hasRealValue(TWILIO_FROM_NUMBER) || hasRealValue(TWILIO_MESSAGING_SERVICE_SID))
-);
-
 const isMsg91Configured = () => Boolean(hasRealValue(MSG91_AUTHKEY) && hasRealValue(MSG91_FLOW_ID));
 
-const isConfigured = () => Boolean(hasRealValue(SMS_API_URL) || isMsg91Configured() || isTwilioConfigured());
+const isConfigured = () => Boolean(hasRealValue(SMS_API_URL) || isMsg91Configured());
 
 const getMissingMsg91Fields = () => [
     ["MSG91_AUTHKEY", MSG91_AUTHKEY],
@@ -61,7 +40,9 @@ const formatPhone = (phone) => {
     return digits;
 };
 
-const formatTwilioPhone = (phone) => {
+const formatE164Phone = (phone) => {
+    if (/x/i.test(String(phone || ""))) return "";
+
     const digits = formatPhone(phone);
 
     if (!digits) return "";
@@ -69,16 +50,6 @@ const formatTwilioPhone = (phone) => {
 };
 
 const isE164Phone = (phone) => /^\+[1-9]\d{7,14}$/.test(String(phone || ""));
-
-const getTwilioDiagnostics = () => ({
-    accountSid: TWILIO_ACCOUNT_SID || "",
-    authTokenPresent: Boolean(TWILIO_AUTH_TOKEN),
-    fromNumber: TWILIO_FROM_NUMBER || "",
-    messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID || "",
-    configured: isTwilioConfigured(),
-    fromNumberE164: TWILIO_FROM_NUMBER ? isE164Phone(formatTwilioPhone(TWILIO_FROM_NUMBER)) : null,
-    nodeVersion: process.version
-});
 
 const getMsg91Diagnostics = () => ({
     authkeyPresent: Boolean(MSG91_AUTHKEY),
@@ -101,17 +72,8 @@ const logMsg91Diagnostics = () => {
     console.log("MSG91 runtime diagnostics:", getMsg91Diagnostics());
 };
 
-const logTwilioDiagnostics = () => {
-    console.log("TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID);
-    console.log("TWILIO_FROM_NUMBER:", process.env.TWILIO_FROM_NUMBER);
-    console.log("TWILIO_MESSAGING_SERVICE_SID:", process.env.TWILIO_MESSAGING_SERVICE_SID);
-    console.log("TWILIO_AUTH_TOKEN present:", Boolean(process.env.TWILIO_AUTH_TOKEN));
-    console.log("TWILIO runtime diagnostics:", getTwilioDiagnostics());
-};
-
 const getSmsDiagnostics = () => ({
     msg91: getMsg91Diagnostics(),
-    twilio: getTwilioDiagnostics(),
     genericSmsApiConfigured: Boolean(SMS_API_URL)
 });
 
@@ -168,81 +130,6 @@ const rememberSmsRequest = (phone, message) => {
             recentSmsRequests.delete(key);
         }
     }
-};
-
-const sendTwilioSms = async (phone, message) => {
-    const to = formatTwilioPhone(phone);
-
-    if (!to) {
-        return { skipped: true, reason: "Customer phone missing" };
-    }
-
-    if (!isE164Phone(to)) {
-        return { skipped: true, reason: `Invalid E.164 destination phone number: ${to}` };
-    }
-
-    const from = formatTwilioPhone(TWILIO_FROM_NUMBER);
-    if (!TWILIO_MESSAGING_SERVICE_SID && !isE164Phone(from)) {
-        return { skipped: true, reason: `Invalid E.164 Twilio from number: ${from}` };
-    }
-
-    const params = new URLSearchParams({
-        To: to,
-        Body: message
-    });
-
-    if (TWILIO_MESSAGING_SERVICE_SID) {
-        params.set("MessagingServiceSid", TWILIO_MESSAGING_SERVICE_SID);
-    } else {
-        params.set("From", from);
-    }
-
-    const credentials = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
-    const requestSummary = {
-        accountSid: TWILIO_ACCOUNT_SID,
-        to,
-        from: TWILIO_MESSAGING_SERVICE_SID ? undefined : from,
-        messagingServiceSid: TWILIO_MESSAGING_SERVICE_SID || undefined
-    };
-
-    const response = await fetch(
-        `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`,
-        {
-            method: "POST",
-            headers: {
-                Authorization: `Basic ${credentials}`,
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
-            body: params.toString()
-        }
-    );
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-        console.error("Twilio SMS API error response:", {
-            status: response.status,
-            statusText: response.statusText,
-            request: requestSummary,
-            response: data
-        });
-
-        throw new TwilioSmsError(data.message || data.error_message || "Twilio SMS failed", {
-            status: response.status,
-            statusText: response.statusText,
-            request: requestSummary,
-            response: data
-        });
-    }
-
-    console.log("Twilio SMS sent:", {
-        sid: data.sid,
-        status: data.status,
-        to,
-        from: data.from || requestSummary.from || requestSummary.messagingServiceSid
-    });
-
-    return data;
 };
 
 const sendMsg91Sms = async (phone, message, variables = {}) => {
@@ -339,12 +226,6 @@ const sendSms = async (phone, message, variables = {}) => {
         return result;
     }
 
-    if (isTwilioConfigured()) {
-        const result = await sendTwilioSms(phone, message);
-        rememberSmsRequest(phone, message);
-        return result;
-    }
-
     const to = formatPhone(phone);
 
     if (!to) {
@@ -427,9 +308,7 @@ module.exports = {
     sendCustomerRejectedSms,
     getSmsDiagnostics,
     getMsg91Diagnostics,
-    getTwilioDiagnostics,
     logMsg91Diagnostics,
-    logTwilioDiagnostics,
-    formatTwilioPhone,
+    formatE164Phone,
     isE164Phone
 };
