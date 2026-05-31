@@ -9,7 +9,7 @@ const WHATSAPP_TEMPLATE_ACCOUNT_REJECTED = process.env.WHATSAPP_TEMPLATE_ACCOUNT
 const firstValue = (...values) => values.find((value) => String(value || "").trim());
 const hasRealValue = (value) => {
     const text = String(value || "").trim();
-    return Boolean(text && !text.startsWith("your-"));
+    return Boolean(text && !text.startsWith("your-") && text.toLowerCase() !== "null");
 };
 const MSG91_WHATSAPP_AUTHKEY = firstValue(process.env.MSG91_WHATSAPP_AUTHKEY, process.env.MSG91_AUTHKEY);
 const MSG91_WHATSAPP_INTEGRATED_NUMBER = firstValue(process.env.MSG91_WHATSAPP_INTEGRATED_NUMBER, process.env.MSG91_INTEGRATED_NUMBER);
@@ -17,13 +17,12 @@ const MSG91_WHATSAPP_TEMPLATE_NAMESPACE = firstValue(process.env.MSG91_WHATSAPP_
 const MSG91_WHATSAPP_API_URL = process.env.MSG91_WHATSAPP_API_URL || "https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/";
 
 const isMetaConfigured = () => Boolean(hasRealValue(WHATSAPP_PHONE_NUMBER_ID) && hasRealValue(WHATSAPP_ACCESS_TOKEN));
-const isMsg91Configured = () => Boolean(hasRealValue(MSG91_WHATSAPP_AUTHKEY) && hasRealValue(MSG91_WHATSAPP_INTEGRATED_NUMBER) && hasRealValue(MSG91_WHATSAPP_TEMPLATE_NAMESPACE));
+const isMsg91Configured = () => Boolean(hasRealValue(MSG91_WHATSAPP_AUTHKEY) && hasRealValue(MSG91_WHATSAPP_INTEGRATED_NUMBER));
 const isConfigured = () => Boolean(isMsg91Configured() || isMetaConfigured());
 
 const getMissingMsg91WhatsappFields = () => [
     ["MSG91_WHATSAPP_AUTHKEY", MSG91_WHATSAPP_AUTHKEY],
-    ["MSG91_WHATSAPP_INTEGRATED_NUMBER", MSG91_WHATSAPP_INTEGRATED_NUMBER],
-    ["MSG91_WHATSAPP_TEMPLATE_NAMESPACE", MSG91_WHATSAPP_TEMPLATE_NAMESPACE]
+    ["MSG91_WHATSAPP_INTEGRATED_NUMBER", MSG91_WHATSAPP_INTEGRATED_NUMBER]
 ]
     .filter(([, value]) => !hasRealValue(value))
     .map(([key]) => key);
@@ -34,7 +33,7 @@ const getWhatsappDiagnostics = () => ({
     msg91: {
         authkeyPresent: Boolean(MSG91_WHATSAPP_AUTHKEY),
         integratedNumber: MSG91_WHATSAPP_INTEGRATED_NUMBER || "",
-        templateNamespacePresent: Boolean(MSG91_WHATSAPP_TEMPLATE_NAMESPACE),
+        templateNamespace: hasRealValue(MSG91_WHATSAPP_TEMPLATE_NAMESPACE) ? MSG91_WHATSAPP_TEMPLATE_NAMESPACE : null,
         apiUrl: MSG91_WHATSAPP_API_URL,
         missingFields: getMissingMsg91WhatsappFields(),
         configured: isMsg91Configured()
@@ -231,7 +230,7 @@ const sendMsg91WhatsappTemplate = async (phone, templateName, parameters) => {
                     code: WHATSAPP_TEMPLATE_LANGUAGE,
                     policy: "deterministic"
                 },
-                namespace: MSG91_WHATSAPP_TEMPLATE_NAMESPACE,
+                namespace: hasRealValue(MSG91_WHATSAPP_TEMPLATE_NAMESPACE) ? MSG91_WHATSAPP_TEMPLATE_NAMESPACE : null,
                 to_and_components: [
                     {
                         to: [phone],
@@ -260,7 +259,7 @@ const sendMsg91WhatsappTemplate = async (phone, templateName, parameters) => {
             request: {
                 integratedNumber: MSG91_WHATSAPP_INTEGRATED_NUMBER,
                 templateName,
-                namespace: MSG91_WHATSAPP_TEMPLATE_NAMESPACE,
+                namespace: hasRealValue(MSG91_WHATSAPP_TEMPLATE_NAMESPACE) ? MSG91_WHATSAPP_TEMPLATE_NAMESPACE : null,
                 to: phone,
                 parameterCount: parameters.length
             },
