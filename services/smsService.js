@@ -77,6 +77,22 @@ const getMsg91Diagnostics = () => ({
     nodeVersion: process.version
 });
 
+const getMsg91ErrorMessage = (data) => {
+    if (!data || typeof data !== "object") return "MSG91 SMS failed";
+
+    const candidates = [
+        data.message,
+        data.error,
+        data.description,
+        data.msg,
+        data.errors && data.errors.message,
+        data.data && data.data.message,
+        data.data && data.data.error
+    ];
+
+    return candidates.find((value) => String(value || "").trim()) || "MSG91 SMS failed";
+};
+
 const logMsg91Diagnostics = () => {
     console.log("MSG91_AUTHKEY present:", Boolean(MSG91_AUTHKEY));
     console.log("MSG91_FLOW_ID:", MSG91_FLOW_ID);
@@ -219,7 +235,7 @@ const sendMsg91Sms = async (phone, message, variables = {}, options = {}) => {
             response: data
         });
 
-        const err = new Error(data.message || data.error || "MSG91 SMS failed");
+        const err = new Error(getMsg91ErrorMessage(data));
         err.status = response.status;
         err.statusText = response.statusText;
         err.response = data;
@@ -289,9 +305,7 @@ const sendSms = async (phone, message, variables = {}, options = {}) => {
 
 const sendDueDateSms = (customer, bill) => sendSms(
     customer.phone,
-    isOverdue(bill)
-        ? `NetWave overdue reminder: your broadband bill of Rs. ${bill.amount} was due on ${formatDate(bill.due_date)} and is still pending. Please pay now to avoid service interruption.`
-        : `NetWave reminder: your broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date.`,
+    `NetWave reminder: your broadband bill of Rs. ${bill.amount} is pending. Last date for payment: ${formatDate(bill.due_date)}. Please pay before this date.`,
     {
         name: customer.name || "Customer",
         customer_name: customer.name || "Customer",
@@ -306,7 +320,7 @@ const sendDueDateSms = (customer, bill) => sendSms(
 
 const sendPaidSms = (customer, bill) => sendSms(
     customer.phone,
-    `NetWave payment received. We received Rs. ${bill.amount} for bill #${bill.id}. Thank you.`,
+    `NetWave payment received. We received Rs. ${bill.amount} for bill # ${bill.id}. Thank you.`,
     {
         name: customer.name || "Customer",
         customer_name: customer.name || "Customer",
@@ -320,11 +334,8 @@ const sendPaidSms = (customer, bill) => sendSms(
 
 const sendCustomerApprovedSms = (customer) => sendSms(
     customer.phone,
-    `NetWave: your broadband account is approved. You can now log in and use your customer dashboard.`,
-    {
-        name: customer.name || "Customer",
-        customer_name: customer.name || "Customer"
-    },
+    "NetWave: your broadband account is approved. You can now log in and use your customer dashboard.",
+    {},
     {
         flowId: MSG91_FLOW_ID_ACCOUNT_APPROVED
     }
@@ -332,11 +343,8 @@ const sendCustomerApprovedSms = (customer) => sendSms(
 
 const sendCustomerRejectedSms = (customer) => sendSms(
     customer.phone,
-    `NetWave: your broadband registration could not be approved. Please contact support for help.`,
-    {
-        name: customer.name || "Customer",
-        customer_name: customer.name || "Customer"
-    },
+    "NetWave: your broadband registration could not be approved. Please contact support for help.",
+    {},
     {
         flowId: MSG91_FLOW_ID_ACCOUNT_REJECTED
     }
