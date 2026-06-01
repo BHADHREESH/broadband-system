@@ -16,6 +16,9 @@ const MSG91_SMS_API_URL = process.env.MSG91_SMS_API_URL || "https://api.msg91.co
 const SMS_DUPLICATE_WINDOW_MS = Number(process.env.SMS_DUPLICATE_WINDOW_MS || 12000);
 const recentSmsRequests = new Map();
 
+const ACCOUNT_APPROVED_SMS_TEXT = "NetWave: your broadband account is approved. You can now log in and use your customer dashboard.";
+const ACCOUNT_REJECTED_SMS_TEXT = "NetWave: your broadband registration could not be approved. Please contact support for help.";
+
 const hasRealValue = (value) => {
     const text = String(value || "").trim();
     return Boolean(text && !text.startsWith("your-"));
@@ -194,12 +197,12 @@ const sendMsg91Sms = async (phone, message, variables = {}, options = {}) => {
 
     const recipient = {
         mobiles: to,
-        [MSG91_MESSAGE_VAR]: message,
-        message,
-        var: message,
-        var1: message,
         ...variables
     };
+
+    if (options.includeMessageVariable) {
+        recipient[MSG91_MESSAGE_VAR] = message;
+    }
 
     const body = {
         flow_id: flowId,
@@ -334,7 +337,7 @@ const sendPaidSms = (customer, bill) => sendSms(
 
 const sendCustomerApprovedSms = (customer) => sendSms(
     customer.phone,
-    "NetWave: your broadband account is approved. You can now log in and use your customer dashboard.",
+    ACCOUNT_APPROVED_SMS_TEXT,
     {},
     {
         flowId: MSG91_FLOW_ID_ACCOUNT_APPROVED
@@ -343,7 +346,7 @@ const sendCustomerApprovedSms = (customer) => sendSms(
 
 const sendCustomerRejectedSms = (customer) => sendSms(
     customer.phone,
-    "NetWave: your broadband registration could not be approved. Please contact support for help.",
+    ACCOUNT_REJECTED_SMS_TEXT,
     {},
     {
         flowId: MSG91_FLOW_ID_ACCOUNT_REJECTED
@@ -357,6 +360,8 @@ module.exports = {
     sendPaidSms,
     sendCustomerApprovedSms,
     sendCustomerRejectedSms,
+    ACCOUNT_APPROVED_SMS_TEXT,
+    ACCOUNT_REJECTED_SMS_TEXT,
     getSmsDiagnostics,
     getMsg91Diagnostics,
     logMsg91Diagnostics,

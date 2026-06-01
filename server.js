@@ -14,7 +14,8 @@ const {
     getSmsDiagnostics,
     logMsg91Diagnostics,
     formatE164Phone,
-    isE164Phone
+    isE164Phone,
+    ACCOUNT_APPROVED_SMS_TEXT
 } = require("./services/smsService");
 const {
     sendEmail,
@@ -236,7 +237,9 @@ app.get("/test-sms", async (req, res) => {
     }
 
     try {
-        const result = await sendSms(to, "NetWave test SMS from Render.");
+        const result = await sendSms(to, ACCOUNT_APPROVED_SMS_TEXT, {}, {
+            flowId: diagnostics.msg91.flowIds.accountApproved || diagnostics.msg91.flowId
+        });
 
         return res.json({
             success: true,
@@ -297,12 +300,8 @@ app.get("/test-msg91", async (req, res) => {
     }
 
     try {
-        const result = await sendMsg91Sms(to, "NetWave test SMS from Render.", {
-            name: "Customer",
-            customer_name: "Customer",
-            amount: "0",
-            due_date: new Date().toLocaleDateString("en-IN"),
-            bill_id: "TEST"
+        const result = await sendMsg91Sms(to, ACCOUNT_APPROVED_SMS_TEXT, {}, {
+            flowId: diagnostics.msg91.flowIds.accountApproved || diagnostics.msg91.flowId
         });
 
         return res.status(result && result.skipped ? 503 : 200).json({
