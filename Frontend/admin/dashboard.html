@@ -152,10 +152,19 @@ table {
     border-collapse: collapse;
 }
 
+.notifications-table {
+    min-width: 1080px;
+}
+
+.billing-table {
+    min-width: 1060px;
+}
+
 td, th {
     padding: 14px 10px;
     border-bottom: 1px solid #edf1f8;
     text-align: left;
+    vertical-align: middle;
 }
 
 th {
@@ -170,14 +179,49 @@ tr:hover {
 
 /* BADGE */
 .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 5px 10px;
     border-radius: 20px;
     font-weight: 700;
     font-size: 13px;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .paid { background: #d1f7e6; color: green; }
 .unpaid { background: #ffe0e0; color: red; }
+
+.customer-cell {
+    min-width: 150px;
+}
+
+.result-cell {
+    min-width: 118px;
+}
+
+.date-cell {
+    min-width: 150px;
+}
+
+.amount-cell,
+.status-cell {
+    white-space: nowrap;
+}
+
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 260px;
+}
+
+.table-actions .btn {
+    margin: 0;
+    white-space: nowrap;
+}
 
 .notification-detail {
     display: grid;
@@ -710,7 +754,7 @@ tr:hover {
     <button class="btn" onclick="sendReminders()">Send Reminders</button>
 
     <div class="table-box">
-        <table>
+        <table class="billing-table">
             <thead>
                 <tr>
                     <th>Customer</th>
@@ -749,7 +793,7 @@ tr:hover {
 <div id="notifications" class="section">
     <h2>Notifications</h2>
     <div class="table-box">
-        <table>
+        <table class="notifications-table">
             <thead>
                 <tr>
                     <th>Customer</th>
@@ -1325,15 +1369,17 @@ async function loadBills() {
             const isPaid = String(b.status || "").toLowerCase() === "paid";
             billTable.innerHTML+=`
             <tr>
-                <td>#${b.id} ${b.customer_name}</td>
+                <td class="customer-cell">#${b.id} ${b.customer_name}</td>
                 <td>${b.item_summary || "Broadband subscription charges"}</td>
-                <td>${money(b.amount)}</td>
-                <td><span class="badge ${b.status=='paid'?'paid':'unpaid'}">${b.status}</span></td>
-                <td>${b.due_date ? new Date(b.due_date).toLocaleDateString("en-IN") : "--"}</td>
+                <td class="amount-cell">${money(b.amount)}</td>
+                <td class="status-cell"><span class="badge ${b.status=='paid'?'paid':'unpaid'}">${b.status}</span></td>
+                <td class="date-cell">${b.due_date ? new Date(b.due_date).toLocaleDateString("en-IN") : "--"}</td>
                 <td>
+                    <div class="table-actions">
                     ${isPaid ? "" : `<button class="btn" onclick="addHardwareCharge(${b.id})">Add Charge</button>`}
                     <button class="btn" onclick="sendBillNotification(${b.id}, '${isPaid ? "paid" : "due"}')">${isPaid ? "Send Receipt" : "Send Reminder"}</button>
                     ${isPaid ? `<button class="btn secondary" onclick="downloadBill(${b.id})">Download</button>` : ""}
+                    </div>
                 </td>
             </tr>`;
         });
@@ -1376,13 +1422,13 @@ async function loadNotifications() {
         notificationLogsData.forEach(n=>{
             notificationTable.innerHTML+=`
             <tr>
-                <td>${n.customer_name || "--"}</td>
+                <td class="customer-cell">${n.customer_name || "--"}</td>
                 <td>${n.bill_id ? `#${n.bill_id}` : "--"}</td>
                 <td>${notificationPurpose(n.notification_type)}</td>
                 <td>${escapeHtml(notificationChannels(n))}</td>
-                <td>${notificationResultBadge(n.status)}</td>
+                <td class="result-cell">${notificationResultBadge(n.status)}</td>
                 <td>${notificationDetails(n)}</td>
-                <td>${formatDateTime(n.created_at)}</td>
+                <td class="date-cell">${formatDateTime(n.created_at)}</td>
             </tr>`;
         });
         if (notificationLogsData.length === 0) showTableMessage(notificationTable, "No notifications found", 7);
