@@ -179,6 +179,25 @@ tr:hover {
 .paid { background: #d1f7e6; color: green; }
 .unpaid { background: #ffe0e0; color: red; }
 
+.notification-detail {
+    display: grid;
+    gap: 5px;
+    min-width: 220px;
+}
+
+.notification-detail span {
+    color: #40516d;
+}
+
+.notification-detail strong {
+    color: #071b4d;
+}
+
+.notification-detail .needs-attention {
+    color: #9f1d1d;
+    font-weight: 700;
+}
+
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -759,13 +778,27 @@ tr:hover {
     </div>
 </div>
 
-<!-- STAFF -->
+<!-- TEAM USERS -->
 <div id="staff" class="section">
-    <h2>Staff</h2>
-    <button class="btn" onclick="addStaff()">Add Staff</button>
+    <div class="section-header">
+        <div>
+            <h2>Team Users</h2>
+            <p class="section-note">Create staff accounts or another admin account that can access this dashboard.</p>
+        </div>
+        <button class="btn" onclick="addStaff()">+ Add Team User</button>
+    </div>
 
     <div class="table-box">
         <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
             <tbody id="staffTable"></tbody>
         </table>
     </div>
@@ -1071,21 +1104,45 @@ function channelList(value) {
     return `${channels.slice(0, -1).join(", ")} and ${channels[channels.length - 1]}`;
 }
 
+function channelSet(value) {
+    return new Set(String(value || "")
+        .split(",")
+        .map(channel => channel.trim().toLowerCase())
+        .filter(Boolean));
+}
+
+function notificationChannels(notification) {
+    const channels = String(notification.channels || "")
+        .split(",")
+        .map(channel => channel.trim().toLowerCase())
+        .filter(Boolean);
+    const ordered = ["app", "whatsapp", "sms", "email"].filter(channel => channels.includes(channel));
+    return ordered.length ? ordered.map(channelLabel).join(", ") : "--";
+}
+
 function notificationDetails(notification) {
-    const parts = [];
-    const purpose = notificationPurpose(notification.notification_type).toLowerCase();
-    const sent = channelList(notification.sent_channels);
-    const failed = channelList(notification.failed_channels);
-    const skipped = channelList(notification.skipped_channels);
-    const message = String(notification.message || "").trim();
+    const sent = channelSet(notification.sent_channels);
+    const failed = channelSet(notification.failed_channels);
+    const skipped = channelSet(notification.skipped_channels);
+    const sentText = ["app", "whatsapp", "sms", "email"]
+        .filter(channel => sent.has(channel))
+        .map(channelLabel);
+    const attentionText = ["app", "whatsapp", "sms", "email"]
+        .filter(channel => failed.has(channel) || skipped.has(channel))
+        .map(channelLabel);
 
-    if (sent) parts.push(`${notificationPurpose(notification.notification_type)} request was accepted through ${sent}.`);
-    if (failed) parts.push(`${failed} failed. Check provider settings or balance.`);
-    if (skipped) parts.push(`${skipped} was skipped because it is not configured or was already sent recently.`);
-    if (!sent && !failed && !skipped) parts.push(`No ${purpose} was delivered.`);
-    if (message && (failed || skipped)) parts.push(`Issue: ${message}`);
+    const lines = [];
+    if (sentText.length) {
+        lines.push(`<span><strong>Delivered:</strong> ${escapeHtml(channelList(sentText.join(",")))}</span>`);
+    } else {
+        lines.push(`<span class="needs-attention">No delivery channel completed.</span>`);
+    }
 
-    return escapeHtml(parts.join(" "));
+    if (attentionText.length) {
+        lines.push(`<span class="needs-attention">Needs attention: ${escapeHtml(channelList(attentionText.join(",")))}</span>`);
+    }
+
+    return `<div class="notification-detail">${lines.join("")}</div>`;
 }
 
 function renderCharts() {
@@ -1322,7 +1379,7 @@ async function loadNotifications() {
                 <td>${n.customer_name || "--"}</td>
                 <td>${n.bill_id ? `#${n.bill_id}` : "--"}</td>
                 <td>${notificationPurpose(n.notification_type)}</td>
-                <td>${escapeHtml(n.channels || "--")}</td>
+                <td>${escapeHtml(notificationChannels(n))}</td>
                 <td>${notificationResultBadge(n.status)}</td>
                 <td>${notificationDetails(n)}</td>
                 <td>${formatDateTime(n.created_at)}</td>
@@ -1364,13 +1421,14 @@ async function loadStaff() {
                 <td>${s.id}</td>
                 <td>${s.name}</td>
                 <td>${s.email}</td>
+                <td>${s.role === "admin" ? "Admin" : "Staff"}</td>
                 <td><button class="btn" onclick="deleteStaff(${s.id})">Remove</button></td>
             </tr>`;
         });
-        if (staffData.length === 0) showTableMessage(staffTable, "No staff users found", 4);
+        if (staffData.length === 0) showTableMessage(staffTable, "No team users found", 5);
     } catch (err) {
         staffData = [];
-        showTableMessage(staffTable, err.message, 4);
+        showTableMessage(staffTable, err.message, 5);
     }
     renderDashboard();
 }
@@ -1738,11 +1796,14 @@ async function addTicket() {
 }
 
 async function addStaff() {
-    const name = await askText("Staff name");
-    const email = await askText("Staff email");
+    const name = await askText("Team user name");
+    const email = await askText("Team user email");
+    const roleInput = await askText("Role: staff or admin", "staff");
+    const role = String(roleInput || "staff").trim().toLowerCase();
     const password = await askText("Temporary password");
 
     if (!name || !email || !password) return notify("Name, email and password are required");
+    if (!["admin", "staff"].includes(role)) return notify("Role must be staff or admin");
 
     try {
         await handleJson(await fetch(apiUrl("/api/staff"), {
@@ -1751,8 +1812,9 @@ async function addStaff() {
                 "Content-Type": "application/json",
                 Authorization: "Bearer " + token
             },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ name, email, password, role })
         }));
+        notify(`${role === "admin" ? "Admin" : "Staff"} account added`, "success");
         loadStaff();
     } catch (err) {
         notify(err.message);
