@@ -6,6 +6,9 @@ const { notifyBillDue, notifyBillPaid, summarizeNotificationResults } = require(
 const { sendSuccess } = require("../utils/apiResponse");
 const { isValidBillDownloadToken } = require("../utils/billDownloadToken");
 
+const COMPANY_CONTACT_EMAIL = "bhadhreesh2006@gmai.com";
+const COMPANY_CONTACT_PHONE = "+91 9344586609";
+
 function httpError(message, statusCode) {
     const err = new Error(message);
     err.statusCode = statusCode;
@@ -329,7 +332,8 @@ const streamBillPdf = async (id, res) => {
     doc.fontSize(20).fillColor("#FFFFFF").font("Helvetica-Bold").text("NetWave Broadband", 112, 28);
     doc.fontSize(9).fillColor("#DCEBFF").font("Helvetica")
         .text("Connecting You. Powering Possibilities.", 112, 53)
-        .text("Karur, Tamil Nadu | support@netwave.com", 112, 70);
+        .text(`Karur, Tamil Nadu | ${COMPANY_CONTACT_EMAIL}`, 112, 70)
+        .text(`Call: ${COMPANY_CONTACT_PHONE}`, 112, 86);
 
     doc.roundedRect(414, 26, 139, 54, 6).fill("#FFFFFF");
     doc.fontSize(8).fillColor(muted).text("COMPANY BILL", 428, 38, { width: 112, align: "center" });
@@ -393,7 +397,7 @@ const streamBillPdf = async (id, res) => {
     doc.font("Helvetica-Bold").fontSize(10).fillColor(dark).text("Notes", page.left + 16, 515);
     doc.font("Helvetica").fontSize(9).fillColor(muted)
         .text("Thank you for choosing NetWave Broadband. Please keep this bill for your records.", page.left + 16, 533, { width: 470 })
-        .text("For billing corrections or payment queries, contact NetWave support with your bill ID.", page.left + 16, 548, { width: 470 });
+        .text(`For billing corrections or payment queries, contact NetWave support with your bill ID at ${COMPANY_CONTACT_EMAIL} or ${COMPANY_CONTACT_PHONE}.`, page.left + 16, 548, { width: 470 });
 
     doc.moveTo(page.left, 716).lineTo(page.right, 716).strokeColor(border).stroke();
     doc.fontSize(8).fillColor(muted)
