@@ -366,6 +366,34 @@
             padding: 26px;
         }
 
+        .contact-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+
+        .contact-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding: 0 16px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: white;
+            color: var(--navy);
+            font-weight: 800;
+            box-shadow: 0 10px 26px rgba(7, 27, 77, 0.08);
+        }
+
+        .contact-link svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 auto;
+            stroke: var(--blue);
+        }
+
         .support-band {
             display: flex;
             align-items: center;
@@ -614,6 +642,21 @@
                     <h3>Built for operations</h3>
                     <p>Admin and staff dashboards help manage customers, payments, support tickets, and service records from one connected platform.</p>
                 </article>
+            </div>
+            <div class="contact-links" aria-label="Contact NetWave">
+                <a class="contact-link" href="mailto:bhadhreesh2006@gmai.com">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M4 6h16v12H4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="m4 7 8 6 8-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    bhadhreesh2006@gmai.com
+                </a>
+                <a class="contact-link" href="tel:+919344586609">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.77.63 2.61a2 2 0 0 1-.45 2.11L8.02 9.71a16 16 0 0 0 6.27 6.27l1.27-1.27a2 2 0 0 1 2.11-.45c.84.3 1.71.51 2.61.63A2 2 0 0 1 22 16.92z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    +91 9344586609
+                </a>
             </div>
         </section>
 
