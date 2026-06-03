@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="refresh" content="0; url=staff/staff.html">
+<title>Staff Dashboard</title>
+</head>
+<body>
+<script>
+window.location.replace("staff/staff.html");
+</script>
+</body>
+</html>

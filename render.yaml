@@ -1,0 +1,112 @@
+services:
+  - type: web
+    name: netwave-broadband
+    env: node
+    rootDir: Backend
+    buildCommand: npm ci && npm install --prefix ../Frontend/react-app && npm run build --prefix ../Frontend/react-app
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_DIR
+        value: ../Frontend/react-app/dist
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: 587
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: TEST_EMAIL_TO
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v20.0
+      - key: WHATSAPP_TEMPLATE_LANGUAGE
+        value: en
+      - key: WHATSAPP_TEMPLATE_BILL_DUE
+        value: bill_due_reminder
+      - key: WHATSAPP_TEMPLATE_PAYMENT_RECEIVED
+        value: payment_received
+      - key: WHATSAPP_TEMPLATE_ACCOUNT_APPROVED
+        value: account_approved
+      - key: WHATSAPP_TEMPLATE_ACCOUNT_REJECTED
+        value: account_rejected
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: MSG91_WHATSAPP_AUTHKEY
+        sync: false
+      - key: MSG91_WHATSAPP_INTEGRATED_NUMBER
+        sync: false
+      - key: MSG91_WHATSAPP_TEMPLATE_NAMESPACE
+        sync: false
+      - key: MSG91_WHATSAPP_API_URL
+        value: https://control.msg91.com/api/v5/whatsapp/whatsapp-outbound-message/bulk/
+      - key: SMS_API_URL
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: SMS_FROM
+        value: NetWave
+      - key: MSG91_AUTHKEY
+        sync: false
+      - key: MSG91_FLOW_ID
+        sync: false
+      - key: MSG91_FLOW_ID_BILL_DUE
+        sync: false
+      - key: MSG91_FLOW_ID_PAYMENT_RECEIVED
+        sync: false
+      - key: MSG91_FLOW_ID_ACCOUNT_APPROVED
+        sync: false
+      - key: MSG91_FLOW_ID_ACCOUNT_REJECTED
+        sync: false
+      - key: MSG91_SENDER
+        sync: false
+      - key: MSG91_ROUTE
+        sync: false
+      - key: MSG91_SMS_API_URL
+        value: https://api.msg91.com/api/v5/flow/
+      - key: MSG91_MESSAGE_VAR
+        value: message
+      - key: SMS_DUPLICATE_WINDOW_MS
+        value: 12000
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
+      - key: TWILIO_MESSAGING_SERVICE_SID
+        sync: false
+      - key: TEST_SMS_TO
+        sync: false
+      - key: TEST_WHATSAPP_TO
+        sync: false
+      - key: BILL_DOWNLOAD_SECRET
+        sync: false
+      - key: BILL_DOWNLOAD_TTL_HOURS
+        value: 168
+      - key: OPENAI_API_KEY
+        sync: false

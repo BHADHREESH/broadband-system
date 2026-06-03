@@ -1,7 +1,14 @@
 node_modules/
+Backend/node_modules/
+Frontend/react-app/node_modules/
+
 .env
+Backend/.env
+.env.backup-*
+
 dist/
 build/
 *.log
 *.pdf
-.env.backup-*
+
+.vscode/
