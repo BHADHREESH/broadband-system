@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NetWave Profile</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #eef3fb;
+            color: #172033;
+        }
+
+        .navbar {
+            background: #071b4d;
+            color: white;
+            padding: 16px 32px;
+            box-shadow: 0 8px 24px rgba(7,27,77,0.18);
+        }
+
+        .navbar h2 {
+            margin: 0;
+        }
+
+        .wrap {
+            min-height: calc(100vh - 64px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+
+        .profile-card {
+            width: 380px;
+            background: white;
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 10px 40px rgba(7,27,77,0.18);
+            border: 1px solid #e4ebf7;
+        }
+
+        .profile-card h2 {
+            margin: 0 0 18px;
+            color: #071b4d;
+        }
+
+        .row {
+            padding: 14px 0;
+            border-bottom: 1px solid #edf1f8;
+        }
+
+        .row:last-child {
+            border-bottom: 0;
+        }
+
+        .label {
+            display: block;
+            color: #60708c;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .value {
+            font-weight: 700;
+        }
+
+        .input {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #d7dfec;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 11px;
+            border: 0;
+            border-radius: 8px;
+            background: #0b5ed7;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 6px;
+        }
+
+        .message {
+            min-height: 20px;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+
+        .error {
+            color: #be123c;
+        }
+
+        .success {
+            color: #047857;
+        }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <h2>NetWave</h2>
+</div>
+
+<div class="wrap">
+    <div class="profile-card">
+        <h2>My Profile</h2>
+
+        <div class="row">
+            <span class="label">Name</span>
+            <span class="value" id="name"></span>
+        </div>
+
+        <div class="row">
+            <span class="label">Email</span>
+            <span class="value" id="email"></span>
+        </div>
+
+        <div class="row">
+            <span class="label">Role</span>
+            <span class="value" id="role"></span>
+        </div>
+
+        <div class="row">
+            <span class="label">Change Password</span>
+            <input class="input" type="password" id="currentPassword" placeholder="Current password">
+            <input class="input" type="password" id="newPassword" placeholder="New password">
+            <button class="btn" onclick="changePassword()">Update Password</button>
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+const BACKEND_ORIGIN = "http://localhost:5000";
+const API_BASE = window.location.protocol === "file:" || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? BACKEND_ORIGIN
+    : "";
+const apiUrl = (path) => `${API_BASE}${path}`;
+const token = localStorage.getItem("token");
+
+if (token) {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+
+    document.getElementById("name").innerText = localStorage.getItem("name");
+    document.getElementById("email").innerText = payload.email || "N/A";
+    document.getElementById("role").innerText = payload.role;
+} else {
+    window.location.href = "login.html";
+}
+
+async function changePassword() {
+    const message = document.getElementById("message");
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+
+    message.className = "message";
+    message.innerText = "";
+
+    if (!currentPassword || !newPassword) {
+        message.className = "message error";
+        message.innerText = "Enter current and new password";
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        message.className = "message error";
+        message.innerText = "New password must be at least 6 characters";
+        return;
+    }
+
+    const res = await fetch(apiUrl("/api/auth/change-password"), {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+        localStorage.clear();
+        window.location.href = "login.html";
+        return;
+    }
+
+    message.className = res.ok ? "message success" : "message error";
+    message.innerText = data.message || (res.ok ? "Password changed" : "Unable to change password");
+
+    if (res.ok) {
+        document.getElementById("currentPassword").value = "";
+        document.getElementById("newPassword").value = "";
+    }
+}
+</script>
+
+</body>
+</html>
