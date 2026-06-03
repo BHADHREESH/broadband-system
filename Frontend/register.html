@@ -117,33 +117,6 @@
             padding-right: 58px;
         }
 
-<<<<<<< HEAD
-        .phone-field {
-            display: flex;
-            align-items: center;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            background: white;
-            overflow: hidden;
-        }
-
-        .phone-field strong {
-            flex: 0 0 auto;
-            padding: 12px;
-            border-right: 1px solid #ddd;
-            color: #071b4d;
-            background: #eef3fb;
-            font-size: 14px;
-        }
-
-        .input-box .phone-field input {
-            border: 0;
-            border-radius: 0;
-            background: transparent;
-        }
-
-=======
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         .error {
             color: #dc3545;
             font-size: 12px;
@@ -224,14 +197,7 @@
             </div>
 
             <div class="input-box">
-<<<<<<< HEAD
-                <div class="phone-field">
-                    <strong>+91</strong>
-                    <input type="tel" id="phone" inputmode="numeric" maxlength="10" placeholder="9876543210" autocomplete="tel">
-                </div>
-=======
                 <input type="tel" id="phone" placeholder="Phone">
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
             </div>
 
             <div class="input-box">
@@ -313,16 +279,6 @@ function togglePassword(id, control) {
     control.innerText = isPassword ? "Hide" : "Show";
 }
 
-<<<<<<< HEAD
-function phoneDigits(value) {
-    const digits = String(value || "").replace(/\D/g, "");
-    if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-    if (digits.length > 10) return digits.slice(-10);
-    return digits;
-}
-
-=======
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 document.getElementById("confirmPassword").addEventListener("input", function() {
     const password = document.getElementById("password").value;
     const confirm = this.value;
@@ -338,11 +294,7 @@ document.getElementById("confirmPassword").addEventListener("input", function() 
 async function register() {
     const name = document.getElementById("name").value.trim();
     const email = document.getElementById("email").value.trim();
-<<<<<<< HEAD
-    const phone = phoneDigits(document.getElementById("phone").value);
-=======
     const phone = document.getElementById("phone").value.trim();
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     const address = document.getElementById("address").value.trim();
     const plan_id = document.getElementById("plan_id").value;
     const password = document.getElementById("password").value.trim();

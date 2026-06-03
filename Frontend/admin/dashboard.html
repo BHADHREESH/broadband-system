@@ -426,37 +426,6 @@ tr:hover {
     resize: vertical;
 }
 
-<<<<<<< HEAD
-.phone-field {
-    display: flex;
-    align-items: center;
-    border: 1px solid #d8e2f1;
-    border-radius: 8px;
-    background: #fbfdff;
-    overflow: hidden;
-}
-
-.phone-field span {
-    flex: 0 0 auto;
-    padding: 11px 12px;
-    border-right: 1px solid #d8e2f1;
-    color: #40516d;
-    font-weight: 700;
-    background: #eef3fb;
-}
-
-.form-field .phone-field input {
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-}
-
-.form-field .phone-field input:focus {
-    outline: none;
-}
-
-=======
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 .form-message {
     grid-column: 1 / -1;
     min-height: 20px;
@@ -505,25 +474,19 @@ tr:hover {
 @media (max-width: 850px) {
     .navbar {
         display: block;
-<<<<<<< HEAD
-=======
         padding: 14px 18px;
     }
 
     .navbar h2 {
         min-width: 0;
         font-size: 22px;
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     }
 
     .menu {
         justify-content: flex-start;
         margin: 16px 0;
-<<<<<<< HEAD
-=======
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     }
 
     .container {
@@ -558,8 +521,6 @@ tr:hover {
     .form-grid {
         grid-template-columns: 1fr;
     }
-<<<<<<< HEAD
-=======
 
     .table-box {
         margin-left: -6px;
@@ -623,7 +584,6 @@ tr:hover {
     .toast {
         width: 100%;
     }
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 }
 
 </style>
@@ -913,14 +873,7 @@ tr:hover {
 
                 <div class="form-field">
                     <label for="customerPhoneInput">Phone</label>
-<<<<<<< HEAD
-                    <div class="phone-field">
-                        <span>+91</span>
-                        <input id="customerPhoneInput" name="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="9876543210" autocomplete="tel" oninput="this.value = phoneDigits(this.value)">
-                    </div>
-=======
                     <input id="customerPhoneInput" name="phone" autocomplete="tel">
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
                 </div>
 
                 <div class="form-field">
@@ -1154,21 +1107,6 @@ function escapeHtml(value) {
         .replace(/'/g, "&#039;");
 }
 
-<<<<<<< HEAD
-function phoneDigits(value) {
-    const digits = String(value || "").replace(/\D/g, "");
-    if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-    if (digits.length > 10) return digits.slice(-10);
-    return digits;
-}
-
-function displayPhone(value) {
-    const digits = phoneDigits(value);
-    return digits ? `+91 ${digits}` : "--";
-}
-
-=======
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 function notificationPurpose(type) {
     const labels = {
         due: "Bill reminder",
@@ -1185,12 +1123,7 @@ function notificationResultBadge(status) {
         sent: "Sent",
         partial: "Partly sent",
         failed: "Failed",
-<<<<<<< HEAD
-        skipped: "Skipped",
-        not_sent: "Not sent"
-=======
         skipped: "Skipped"
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     };
     const label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
     const className = value === "sent" ? "paid" : "unpaid";
@@ -1260,20 +1193,6 @@ function notificationDetails(notification) {
     return `<div class="notification-detail">${lines.join("")}</div>`;
 }
 
-<<<<<<< HEAD
-function notificationOverallStatus(notification) {
-    const sent = channelSet(notification.sent_channels);
-    const failed = channelSet(notification.failed_channels);
-    const skipped = channelSet(notification.skipped_channels);
-    if (["app", "whatsapp", "sms", "email"].every(channel => sent.has(channel))) return "sent";
-    if (sent.size > 0) return "partial";
-    if (failed.size > 0) return "failed";
-    if (skipped.size > 0) return "skipped";
-    return "not_sent";
-}
-
-=======
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 function renderCharts() {
     if (!window.Chart || !paymentStatusChart || !revenueChart) return;
 
@@ -1413,11 +1332,7 @@ async function loadCustomers() {
                 <td>${c.id}</td>
                 <td>${c.name}</td>
                 <td>${c.email}</td>
-<<<<<<< HEAD
-                <td>${displayPhone(c.phone)}</td>
-=======
                 <td>${c.phone || "--"}</td>
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
                 <td>${planLabel(c.plan_id)}</td>
                 <td>${statusBadge(c.status)}</td>
                 <td>${customerActions(c)}</td>
@@ -1493,11 +1408,7 @@ async function loadPayments() {
                 <td>${money(p.amount)}</td>
                 <td>${p.method || "--"}</td>
                 <td>${p.receipt_number || "--"}</td>
-<<<<<<< HEAD
-                <td>${p.paid_at ? new Date(p.paid_at).toLocaleString("en-IN") : "--"}</td>
-=======
                 <td>${formatDateTime(p.paid_at)}</td>
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
             </tr>`;
         });
         if (paymentsData.length === 0) showTableMessage(paymentTable, "No payments found", 5);
@@ -1519,11 +1430,7 @@ async function loadNotifications() {
                 <td>${n.bill_id ? `#${n.bill_id}` : "--"}</td>
                 <td>${notificationPurpose(n.notification_type)}</td>
                 <td>${escapeHtml(notificationChannels(n))}</td>
-<<<<<<< HEAD
-                <td class="result-cell">${notificationResultBadge(notificationOverallStatus(n))}</td>
-=======
                 <td class="result-cell">${notificationResultBadge(n.status)}</td>
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
                 <td>${notificationDetails(n)}</td>
                 <td class="date-cell">${formatDateTime(n.last_created_at || n.created_at)}</td>
             </tr>`;
@@ -1656,11 +1563,7 @@ function openCustomerModal(mode, customer = {}) {
     document.getElementById("customerIdInput").value = customer.id || "";
     document.getElementById("customerNameInput").value = customer.name || "";
     document.getElementById("customerEmailInput").value = customer.email || "";
-<<<<<<< HEAD
-    document.getElementById("customerPhoneInput").value = phoneDigits(customer.phone);
-=======
     document.getElementById("customerPhoneInput").value = customer.phone || "";
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     document.getElementById("customerAddressInput").value = customer.address || "";
     document.getElementById("customerStatusInput").value = customer.status || "active";
     document.getElementById("customerPasswordInput").value = "";
@@ -1689,11 +1592,7 @@ customerForm.addEventListener("submit", async (event) => {
     const id = document.getElementById("customerIdInput").value;
     const name = document.getElementById("customerNameInput").value.trim();
     const email = document.getElementById("customerEmailInput").value.trim();
-<<<<<<< HEAD
-    const phone = phoneDigits(document.getElementById("customerPhoneInput").value);
-=======
     const phone = document.getElementById("customerPhoneInput").value.trim();
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     const address = document.getElementById("customerAddressInput").value.trim();
     const plan_id = document.getElementById("customerPlanInput").value;
     const status = document.getElementById("customerStatusInput").value;
@@ -1874,15 +1773,6 @@ async function sendBillNotification(id, notification_type) {
             body: JSON.stringify({ notification_type })
         }));
         const results = Array.isArray(data.results) ? data.results : [];
-<<<<<<< HEAD
-        const sent = new Set(results
-            .filter((result) => result.status === "sent")
-            .map(result => result.channel));
-        const message = ["app", "whatsapp", "sms", "email"]
-            .map(channel => `${channelLabel(channel)}: ${sent.has(channel) ? "sent" : "not sent"}`)
-            .join(" | ");
-        notify(message, sent.size > 0 ? "success" : "error");
-=======
         const summary = data.summary || {};
         const failed = results.filter((result) => result.status === "failed");
         const skipped = results.filter((result) => result.status === "skipped");
@@ -1904,7 +1794,6 @@ async function sendBillNotification(id, notification_type) {
         } else {
             notify("Notification processed", "success");
         }
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         loadNotifications();
     } catch (err) {
         notify(err.message);

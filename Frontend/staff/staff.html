@@ -294,8 +294,6 @@ tr:hover td {
         padding: 20px 16px;
     }
 
-<<<<<<< HEAD
-=======
     .sidebar h2 {
         font-size: 22px;
     }
@@ -304,7 +302,6 @@ tr:hover td {
         margin-bottom: 16px;
     }
 
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     .menu {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -336,8 +333,6 @@ tr:hover td {
     .btn {
         margin: 4px 0;
     }
-<<<<<<< HEAD
-=======
 
     .table-box {
         margin-left: -6px;
@@ -401,7 +396,6 @@ tr:hover td {
     .toast {
         width: 100%;
     }
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 }
 
 </style>
@@ -795,12 +789,7 @@ async function addCustomer() {
 
     const name = await askText("Customer name");
     const email = await askText("Customer email");
-<<<<<<< HEAD
-    const phoneInput = await askText("Phone", "+91");
-    const phoneDigits = String(phoneInput || "").replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "");
-=======
     const phone = await askText("Phone");
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     const address = await askText("Address");
     const plan_id = await askText("Plan ID" + planOptions);
     const password = await askText("Temporary login password");
@@ -816,11 +805,7 @@ async function addCustomer() {
                 "Content-Type": "application/json",
                 Authorization: "Bearer " + token
             },
-<<<<<<< HEAD
-            body: JSON.stringify({ name, email, phone: phoneDigits, address, plan_id, password })
-=======
             body: JSON.stringify({ name, email, phone, address, plan_id, password })
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         }));
         loadAll();
     } catch (err) {

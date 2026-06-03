@@ -339,33 +339,6 @@ input {
     margin: 0;
 }
 
-<<<<<<< HEAD
-.phone-field {
-    display: flex;
-    align-items: center;
-    border: 1px solid #d5deec;
-    border-radius: 8px;
-    background: white;
-    overflow: hidden;
-}
-
-.phone-field span {
-    flex: 0 0 auto;
-    padding: 11px 12px;
-    border-right: 1px solid #d5deec;
-    color: #40516d;
-    font-weight: 700;
-    background: #eef3fb;
-}
-
-.modal-body .phone-field input {
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-}
-
-=======
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 .modal-body textarea {
     min-height: 86px;
     resize: vertical;
@@ -419,8 +392,6 @@ input {
         font-size: 26px;
     }
 
-<<<<<<< HEAD
-=======
     .navbar h2 {
         font-size: 22px;
     }
@@ -436,13 +407,10 @@ input {
         grid-template-columns: 1fr;
     }
 
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     .tabs .btn,
     input {
         width: 100%;
         min-width: 0;
-<<<<<<< HEAD
-=======
         margin-right: 0;
     }
 
@@ -470,15 +438,12 @@ input {
     th {
         padding: 12px 10px;
         font-size: 14px;
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     }
 
     td .btn {
         margin: 4px 0;
         width: 100%;
     }
-<<<<<<< HEAD
-=======
 
     .modal-backdrop {
         align-items: flex-end;
@@ -510,7 +475,6 @@ input {
     .toast {
         width: 100%;
     }
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 }
 </style>
 </head>
@@ -695,14 +659,7 @@ input {
                 <input id="profileNameInput" autocomplete="name" required>
 
                 <label for="profilePhoneInput">Phone</label>
-<<<<<<< HEAD
-                <div class="phone-field">
-                    <span>+91</span>
-                    <input id="profilePhoneInput" type="tel" inputmode="numeric" maxlength="10" placeholder="9876543210" autocomplete="tel">
-                </div>
-=======
                 <input id="profilePhoneInput" autocomplete="tel">
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 
                 <label for="profileAddressInput">Address</label>
                 <textarea id="profileAddressInput"></textarea>
@@ -799,18 +756,6 @@ function money(value) {
     return "Rs." + Number(value || 0).toLocaleString("en-IN");
 }
 
-<<<<<<< HEAD
-function phoneDigits(value) {
-    const digits = String(value || "").replace(/\D/g, "");
-    if (digits.length === 12 && digits.startsWith("91")) return digits.slice(2);
-    if (digits.length > 10) return digits.slice(-10);
-    return digits;
-}
-
-function displayPhone(value) {
-    const digits = phoneDigits(value);
-    return digits ? `+91 ${digits}` : "Phone not available";
-=======
 function formatDate(value) {
     if (!value) return "--";
     const date = new Date(value);
@@ -820,7 +765,6 @@ function formatDate(value) {
         month: "short",
         year: "numeric"
     });
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 }
 
 async function loadPlan() {
@@ -845,11 +789,7 @@ async function loadPlan() {
     document.getElementById("planValidity").innerText = `${profile.validity || 30} days`;
     document.getElementById("connectionStatus").innerText = profile.status || "active";
     document.getElementById("customerId").innerText = `Customer ID: ${profile.id}`;
-<<<<<<< HEAD
-    document.getElementById("customerPhone").innerText = displayPhone(profile.phone);
-=======
     document.getElementById("customerPhone").innerText = profile.phone || "Phone not available";
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     document.getElementById("customerAddress").innerText = profile.address || "Address not available";
     document.getElementById("planText").innerText =
         `${profile.plan_name} gives you ${profile.speed} broadband for ${money(profile.price)} every ${profile.validity || 30} days. You can review bills and pay from the Bills & Payment tab.`;
@@ -859,11 +799,7 @@ async function editProfile() {
     if (!currentProfile) return notify("Profile is still loading");
 
     document.getElementById("profileNameInput").value = currentProfile.name || "";
-<<<<<<< HEAD
-    document.getElementById("profilePhoneInput").value = phoneDigits(currentProfile.phone);
-=======
     document.getElementById("profilePhoneInput").value = currentProfile.phone || "";
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     document.getElementById("profileAddressInput").value = currentProfile.address || "";
     document.getElementById("profileFormMessage").innerText = "";
     document.getElementById("profileModalBackdrop").classList.add("show");
@@ -878,11 +814,7 @@ document.getElementById("profileForm").addEventListener("submit", async (event) 
     event.preventDefault();
 
     const name = document.getElementById("profileNameInput").value.trim();
-<<<<<<< HEAD
-    const phone = phoneDigits(document.getElementById("profilePhoneInput").value);
-=======
     const phone = document.getElementById("profilePhoneInput").value.trim();
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     const address = document.getElementById("profileAddressInput").value.trim();
 
     if (!name) {
@@ -976,11 +908,7 @@ async function loadBills() {
             <td>${b.item_summary || "Broadband subscription charges"}</td>
             <td>Rs.${b.amount}</td>
             <td>${b.status}</td>
-<<<<<<< HEAD
-            <td>${b.bill_date}</td>
-=======
             <td>${formatDate(b.bill_date)}</td>
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
             <td>
                 ${isPayable
                     ? `<button class="btn" onclick="payNow(${b.amount}, ${b.id})">Pay</button>`
@@ -998,11 +926,7 @@ async function loadBills() {
         currentAmount = currentBill.amount;
         currentBillId = currentBill.id;
         document.getElementById("billAmount").innerText = "Rs." + currentBill.amount;
-<<<<<<< HEAD
-        document.getElementById("dueDate").innerText = currentBill.due_date;
-=======
         document.getElementById("dueDate").innerText = formatDate(currentBill.due_date);
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         document.getElementById("payAmount").innerText = currentBill.amount;
         payButton.disabled = false;
     } else {

@@ -17,23 +17,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-<<<<<<< HEAD
-            padding: 15px 50px;
-=======
             padding: 10px 7vw;
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
             background: white;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .navbar img {
-<<<<<<< HEAD
-            width: 120px;
-=======
             width: 118px;
             max-height: 64px;
             object-fit: contain;
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         }
 
         .nav-links a {
@@ -46,20 +38,12 @@
         /* HERO */
         .hero {
             display: flex;
-<<<<<<< HEAD
-            height: 85vh;
-=======
             min-height: calc(100vh - 85px);
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         }
 
         .left {
             flex: 1;
-<<<<<<< HEAD
-            padding: 80px;
-=======
             padding: 60px 7vw;
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         }
 
         .left h1 {
@@ -198,8 +182,6 @@
             color: #007bff;
             text-decoration: none;
         }
-<<<<<<< HEAD
-=======
 
         @media (max-width: 760px) {
             .navbar {
@@ -240,7 +222,6 @@
                 padding: 28px;
             }
         }
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
     </style>
 </head>
 
@@ -359,11 +340,7 @@ async function login(event) {
         });
 
         const payload = await res.json().catch(() => ({}));
-<<<<<<< HEAD
-        const data = payload.data || payload;
-=======
         const data = res.ok ? (payload.data || payload) : payload;
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
 
         if (res.ok) {
             const user = data.user || {};
@@ -390,11 +367,7 @@ async function login(event) {
             }
 
         } else {
-<<<<<<< HEAD
-            showMessage(data.message || "Login failed");
-=======
             showMessage(payload.message || data.message || "Login failed");
->>>>>>> 203625e7b2f0a2f7cb659a7e37c04fb30810eadf
         }
 
     } catch (err) {
